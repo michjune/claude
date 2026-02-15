@@ -1,5 +1,6 @@
-import { generateStructuredContent } from './openai';
+import { generateStructuredContent } from './anthropic';
 import { SYSTEM_PROMPTS, buildVideoScriptPrompt } from './prompts';
+import { getToneSettings, buildToneDirective } from './tone';
 import type { Paper } from '@/lib/supabase/types';
 
 interface ScriptOutput {
@@ -9,6 +10,8 @@ interface ScriptOutput {
 }
 
 export async function generateVideoScript(paper: Paper): Promise<ScriptOutput> {
+  const tone = await getToneSettings();
+
   const userPrompt = buildVideoScriptPrompt({
     title: paper.title,
     abstract: paper.abstract || undefined,
@@ -16,8 +19,10 @@ export async function generateVideoScript(paper: Paper): Promise<ScriptOutput> {
     authors: paper.authors,
   });
 
+  const systemPrompt = `${SYSTEM_PROMPTS.contentGenerator}\n\n${SYSTEM_PROMPTS.videoScript}${buildToneDirective(tone.tone, tone.video_style)}`;
+
   return generateStructuredContent<ScriptOutput>(
-    `${SYSTEM_PROMPTS.contentGenerator}\n\n${SYSTEM_PROMPTS.videoScript}`,
+    systemPrompt,
     userPrompt,
     { temperature: 0.7, maxTokens: 2000 }
   );

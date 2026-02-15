@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { generateBlogPost } from '@/lib/ai/blog-generator';
 import { generateSocialContent } from '@/lib/ai/social-generator';
 import { generateVideoScript } from '@/lib/ai/script-generator';
+import { generateBlogImage } from '@/lib/ai/image-generator';
 import type { Paper, ContentType } from '@/lib/supabase/types';
 
 export async function GET(request: Request) {
@@ -46,6 +47,19 @@ export async function GET(request: Request) {
           generateVideoScript(paper as Paper),
         ]);
 
+        // Generate blog featured image
+        let blogImageUrl: string | null = null;
+        let imgMeta: Record<string, unknown> = {};
+        try {
+          const imageResult = await generateBlogImage(blog.title, blog.keywords, blog.slug);
+          blogImageUrl = imageResult.og_image_url;
+          if (imageResult.unsplash_author) {
+            imgMeta = { unsplash_author: imageResult.unsplash_author, unsplash_author_url: imageResult.unsplash_author_url };
+          }
+        } catch (imgErr) {
+          console.error(`Failed to generate blog image for paper ${paper.id}:`, imgErr);
+        }
+
         const contentItems: Array<{
           paper_id: string;
           content_type: ContentType;
@@ -56,9 +70,10 @@ export async function GET(request: Request) {
           status: 'pending_review';
           seo_title: string | null;
           seo_description: string | null;
+          og_image_url?: string | null;
           metadata: Record<string, unknown>;
         }> = [
-          { paper_id: paper.id, content_type: 'blog_post', title: blog.title, slug: blog.slug, body: blog.body, summary: blog.summary, status: 'pending_review', seo_title: blog.seo_title, seo_description: blog.seo_description, metadata: { keywords: blog.keywords } },
+          { paper_id: paper.id, content_type: 'blog_post', title: blog.title, slug: blog.slug, body: blog.body, summary: blog.summary, status: 'pending_review', seo_title: blog.seo_title, seo_description: blog.seo_description, og_image_url: blogImageUrl, metadata: { keywords: blog.keywords, ...imgMeta } },
           { paper_id: paper.id, content_type: 'tweet', title: null, slug: null, body: social.tweet, summary: null, status: 'pending_review', seo_title: null, seo_description: null, metadata: {} },
           { paper_id: paper.id, content_type: 'linkedin_post', title: null, slug: null, body: social.linkedin_post, summary: null, status: 'pending_review', seo_title: null, seo_description: null, metadata: {} },
           { paper_id: paper.id, content_type: 'instagram_caption', title: null, slug: null, body: social.instagram_caption, summary: null, status: 'pending_review', seo_title: null, seo_description: null, metadata: {} },

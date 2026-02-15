@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { generateBlogPost } from '@/lib/ai/blog-generator';
 import { generateSocialContent } from '@/lib/ai/social-generator';
 import { generateVideoScript } from '@/lib/ai/script-generator';
+import { generateBlogImage } from '@/lib/ai/image-generator';
 import type { Paper, ContentType } from '@/lib/supabase/types';
 
 export async function POST(request: Request) {
@@ -35,6 +36,26 @@ export async function POST(request: Request) {
       generateVideoScript(paper as Paper),
     ]);
 
+    // Generate blog featured image
+    let blogImageUrl: string | null = null;
+    let imageMetadata: Record<string, unknown> = {};
+    try {
+      const imageResult = await generateBlogImage(
+        blog.title,
+        blog.keywords,
+        blog.slug
+      );
+      blogImageUrl = imageResult.og_image_url;
+      if (imageResult.unsplash_author) {
+        imageMetadata = {
+          unsplash_author: imageResult.unsplash_author,
+          unsplash_author_url: imageResult.unsplash_author_url,
+        };
+      }
+    } catch (err) {
+      console.error('Failed to generate blog image:', err);
+    }
+
     // Insert all content items
     const contentItems: Array<{
       paper_id: string;
@@ -46,6 +67,7 @@ export async function POST(request: Request) {
       status: 'pending_review';
       seo_title: string | null;
       seo_description: string | null;
+      og_image_url?: string | null;
       created_by: string;
       metadata: Record<string, unknown>;
     }> = [
@@ -59,8 +81,9 @@ export async function POST(request: Request) {
         status: 'pending_review',
         seo_title: blog.seo_title,
         seo_description: blog.seo_description,
+        og_image_url: blogImageUrl,
         created_by: user.id,
-        metadata: { keywords: blog.keywords },
+        metadata: { keywords: blog.keywords, ...imageMetadata },
       },
       {
         paper_id: paperId,

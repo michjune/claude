@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export const runtime = 'edge';
 
@@ -12,7 +13,32 @@ export const contentType = 'image/png';
 export const alt = 'StemCell Pulse blog post';
 
 export default async function OGImage({ params }: { params: { slug: string } }) {
-  const title = params.slug
+  // Try to redirect to stored OG image
+  const supabase = createServerSupabaseClient();
+  const { data: post } = await supabase
+    .from('content')
+    .select('og_image_url, title')
+    .eq('slug', params.slug)
+    .eq('content_type', 'blog_post')
+    .single();
+
+  // If we have a stored OG image, fetch and return it
+  if (post?.og_image_url) {
+    try {
+      const res = await fetch(post.og_image_url);
+      if (res.ok) {
+        const buffer = await res.arrayBuffer();
+        return new Response(buffer, {
+          headers: { 'Content-Type': 'image/png' },
+        });
+      }
+    } catch {
+      // Fall through to generated image
+    }
+  }
+
+  // Fallback: generate on-the-fly
+  const title = post?.title || params.slug
     .replace(/-/g, ' ')
     .replace(/\b\w/g, (c) => c.toUpperCase());
 

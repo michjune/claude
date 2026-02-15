@@ -1,5 +1,6 @@
-import { generateStructuredContent } from './openai';
+import { generateStructuredContent } from './anthropic';
 import { SYSTEM_PROMPTS, buildSocialPrompt } from './prompts';
+import { getToneSettings, buildToneDirective } from './tone';
 import type { Paper } from '@/lib/supabase/types';
 
 interface SocialOutput {
@@ -12,14 +13,18 @@ interface SocialOutput {
 }
 
 export async function generateSocialContent(paper: Paper): Promise<SocialOutput> {
+  const tone = await getToneSettings();
+
   const userPrompt = buildSocialPrompt({
     title: paper.title,
     abstract: paper.abstract || undefined,
     journal_name: paper.journal_name || undefined,
   });
 
+  const systemPrompt = `${SYSTEM_PROMPTS.contentGenerator}\n\n${SYSTEM_PROMPTS.socialMedia}${buildToneDirective(tone.tone, tone.social_style)}`;
+
   return generateStructuredContent<SocialOutput>(
-    `${SYSTEM_PROMPTS.contentGenerator}\n\n${SYSTEM_PROMPTS.socialMedia}`,
+    systemPrompt,
     userPrompt,
     { temperature: 0.8, maxTokens: 3000 }
   );

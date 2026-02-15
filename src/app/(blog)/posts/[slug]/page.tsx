@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import type { Content } from '@/lib/supabase/types';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, ArrowLeft } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { notFound } from 'next/navigation';
@@ -209,6 +210,42 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         <ArrowLeft className="h-4 w-4" />
         Back to Blog
       </Link>
+
+      {post.og_image_url && (
+        <div className="relative aspect-[1200/630] w-full rounded-lg overflow-hidden mb-8">
+          <Image
+            src={post.og_image_url}
+            alt={post.title || ''}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 768px"
+            priority
+          />
+        </div>
+      )}
+
+      {(post.metadata?.unsplash_author as string) && (
+        <p className="text-xs text-muted-foreground mb-4">
+          Photo by{' '}
+          <a
+            href={`${post.metadata.unsplash_author_url}?utm_source=stemcell_pulse&utm_medium=referral`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-foreground"
+          >
+            {post.metadata.unsplash_author as string}
+          </a>
+          {' '}on{' '}
+          <a
+            href="https://unsplash.com/?utm_source=stemcell_pulse&utm_medium=referral"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-foreground"
+          >
+            Unsplash
+          </a>
+        </p>
+      )}
 
       <header className="mb-10">
         <h1 className="text-4xl font-bold tracking-tight leading-tight mb-4">

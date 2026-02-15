@@ -164,6 +164,14 @@ export interface CronJob {
   created_at: string;
 }
 
+export interface AiToneSetting {
+  id: string;
+  setting_key: string;
+  value: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ActivityLog {
   id: string;
   user_id: string | null;
@@ -197,6 +205,7 @@ export interface Database {
       newsletter_subscribers: TableDef<NewsletterSubscriber>;
       platform_settings: TableDef<PlatformSetting>;
       cron_jobs: TableDef<CronJob>;
+      ai_tone_settings: TableDef<AiToneSetting>;
       activity_log: TableDef<ActivityLog>;
     };
     Views: Record<string, never>;

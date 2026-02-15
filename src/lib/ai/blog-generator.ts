@@ -1,5 +1,6 @@
-import { generateStructuredContent } from './openai';
+import { generateStructuredContent } from './anthropic';
 import { SYSTEM_PROMPTS, buildBlogPrompt } from './prompts';
+import { getToneSettings, buildToneDirective } from './tone';
 import type { Paper } from '@/lib/supabase/types';
 
 interface BlogOutput {
@@ -13,6 +14,8 @@ interface BlogOutput {
 }
 
 export async function generateBlogPost(paper: Paper): Promise<BlogOutput> {
+  const tone = await getToneSettings();
+
   const userPrompt = buildBlogPrompt({
     title: paper.title,
     abstract: paper.abstract || undefined,
@@ -22,8 +25,10 @@ export async function generateBlogPost(paper: Paper): Promise<BlogOutput> {
     keywords: paper.keywords,
   });
 
+  const systemPrompt = `${SYSTEM_PROMPTS.contentGenerator}\n\n${SYSTEM_PROMPTS.blogPost}${buildToneDirective(tone.tone, tone.blog_style)}`;
+
   const result = await generateStructuredContent<BlogOutput>(
-    `${SYSTEM_PROMPTS.contentGenerator}\n\n${SYSTEM_PROMPTS.blogPost}`,
+    systemPrompt,
     userPrompt,
     { temperature: 0.7, maxTokens: 4096 }
   );

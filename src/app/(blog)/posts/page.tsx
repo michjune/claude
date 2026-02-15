@@ -3,6 +3,7 @@ import type { Content } from '@/lib/supabase/types';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Calendar } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { format } from 'date-fns';
 
@@ -55,7 +56,18 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
 
           return (
             <Link key={post.id} href={`/posts/${post.slug}`}>
-              <Card className="h-full transition-shadow hover:shadow-lg">
+              <Card className="h-full transition-shadow hover:shadow-lg overflow-hidden">
+                {post.og_image_url && (
+                  <div className="relative aspect-[1200/630] w-full">
+                    <Image
+                      src={post.og_image_url}
+                      alt={post.title || ''}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    />
+                  </div>
+                )}
                 <CardHeader>
                   <CardTitle className="text-lg leading-snug line-clamp-2">
                     {post.title}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
 import type { Journal, CronJob } from '@/lib/supabase/types';
@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import type { AiToneSetting } from '@/lib/supabase/types';
 import { cn } from '@/lib/utils';
 import {
   BookOpen,
@@ -22,6 +23,8 @@ import {
   AlertCircle,
   Server,
   Info,
+  Sparkles,
+  Save,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -42,6 +45,60 @@ export default function AdminSettingsPage() {
     impact_factor: '',
   });
   const [journalFormOpen, setJournalFormOpen] = useState(false);
+
+  // Tone settings state
+  const [toneForm, setToneForm] = useState({
+    tone: 'Professional',
+    blog_style: '',
+    social_style: '',
+    video_style: '',
+  });
+
+  // Tone settings query
+  const { data: toneSettings, isLoading: toneLoading } = useQuery({
+    queryKey: ['admin-tone-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ai_tone_settings')
+        .select('*');
+      if (error) throw error;
+      return data as AiToneSetting[];
+    },
+  });
+
+  // Sync tone form when data loads
+  useEffect(() => {
+    if (toneSettings && toneSettings.length > 0) {
+      const map: Record<string, string> = {};
+      for (const s of toneSettings) map[s.setting_key] = s.value;
+      setToneForm({
+        tone: map.tone || 'Professional',
+        blog_style: map.blog_style || '',
+        social_style: map.social_style || '',
+        video_style: map.video_style || '',
+      });
+    }
+  }, [toneSettings]);
+
+  // Save tone settings mutation
+  const saveToneMutation = useMutation({
+    mutationFn: async () => {
+      const entries = Object.entries(toneForm);
+      for (const [key, value] of entries) {
+        const { error } = await supabase
+          .from('ai_tone_settings')
+          .upsert({ setting_key: key, value, updated_at: new Date().toISOString() }, { onConflict: 'setting_key' });
+        if (error) throw error;
+      }
+      // Clear server-side cache
+      await fetch('/api/settings/tone', { method: 'POST' });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-tone-settings'] });
+    },
+  });
+
+  const TONE_PRESETS = ['Professional', 'Casual', 'Enthusiastic', 'Custom'] as const;
 
   // Journals query
   const { data: journals, isLoading: journalsLoading } = useQuery({
@@ -116,6 +173,7 @@ export default function AdminSettingsPage() {
       <Tabs defaultValue="journals">
         <TabsList>
           <TabsTrigger value="journals">Journals</TabsTrigger>
+          <TabsTrigger value="tone">AI Tone</TabsTrigger>
           <TabsTrigger value="cron">Cron Jobs</TabsTrigger>
           <TabsTrigger value="system">System Info</TabsTrigger>
         </TabsList>
@@ -269,6 +327,126 @@ export default function AdminSettingsPage() {
                 <p>No journals configured yet.</p>
               </CardContent>
             </Card>
+          )}
+        </TabsContent>
+
+        {/* AI Tone Tab */}
+        <TabsContent value="tone" className="mt-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">AI Tone & Style</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Configure the writing style used when generating content.
+              </p>
+            </div>
+          </div>
+
+          {toneLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-24 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Tone Preset */}
+              <Card>
+                <CardContent className="py-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <label className="text-sm font-medium">Tone Preset</label>
+                  </div>
+                  <select
+                    value={TONE_PRESETS.includes(toneForm.tone as typeof TONE_PRESETS[number]) ? toneForm.tone : 'Custom'}
+                    onChange={(e) =>
+                      setToneForm((prev) => ({ ...prev, tone: e.target.value }))
+                    }
+                    className="flex h-9 w-full max-w-xs rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    {TONE_PRESETS.map((preset) => (
+                      <option key={preset} value={preset}>
+                        {preset}
+                      </option>
+                    ))}
+                  </select>
+                </CardContent>
+              </Card>
+
+              {/* Blog Style */}
+              <Card>
+                <CardContent className="py-4 space-y-3">
+                  <label className="text-sm font-medium">Blog Style Instructions</label>
+                  <textarea
+                    value={toneForm.blog_style}
+                    onChange={(e) =>
+                      setToneForm((prev) => ({ ...prev, blog_style: e.target.value }))
+                    }
+                    rows={3}
+                    placeholder="Instructions for blog post writing style..."
+                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Social Style */}
+              <Card>
+                <CardContent className="py-4 space-y-3">
+                  <label className="text-sm font-medium">Social Media Style Instructions</label>
+                  <textarea
+                    value={toneForm.social_style}
+                    onChange={(e) =>
+                      setToneForm((prev) => ({ ...prev, social_style: e.target.value }))
+                    }
+                    rows={3}
+                    placeholder="Instructions for social media content style..."
+                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Video Style */}
+              <Card>
+                <CardContent className="py-4 space-y-3">
+                  <label className="text-sm font-medium">Video Script Style Instructions</label>
+                  <textarea
+                    value={toneForm.video_style}
+                    onChange={(e) =>
+                      setToneForm((prev) => ({ ...prev, video_style: e.target.value }))
+                    }
+                    rows={3}
+                    placeholder="Instructions for video script style..."
+                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Save Button */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => saveToneMutation.mutate()}
+                  disabled={saveToneMutation.isPending}
+                  className="inline-flex items-center gap-2 rounded-md text-sm font-medium bg-primary text-primary-foreground h-9 px-4 hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                >
+                  {saveToneMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  Save Tone Settings
+                </button>
+                {saveToneMutation.isSuccess && (
+                  <span className="text-sm text-green-600 flex items-center gap-1">
+                    <CheckCircle className="h-4 w-4" />
+                    Saved
+                  </span>
+                )}
+                {saveToneMutation.isError && (
+                  <span className="text-sm text-destructive">
+                    Failed to save: {(saveToneMutation.error as Error).message}
+                  </span>
+                )}
+              </div>
+            </div>
           )}
         </TabsContent>
 
