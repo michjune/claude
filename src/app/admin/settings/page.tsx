@@ -1,0 +1,409 @@
+'use client';
+
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { createClient } from '@/lib/supabase/client';
+import type { Journal, CronJob } from '@/lib/supabase/types';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
+import {
+  BookOpen,
+  Plus,
+  ToggleLeft,
+  ToggleRight,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  AlertCircle,
+  Server,
+  Info,
+} from 'lucide-react';
+import { format } from 'date-fns';
+
+const cronStatusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  success: 'default',
+  running: 'secondary',
+  failed: 'destructive',
+};
+
+export default function AdminSettingsPage() {
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+
+  // Journal form state
+  const [newJournal, setNewJournal] = useState({
+    name: '',
+    issn: '',
+    impact_factor: '',
+  });
+  const [journalFormOpen, setJournalFormOpen] = useState(false);
+
+  // Journals query
+  const { data: journals, isLoading: journalsLoading } = useQuery({
+    queryKey: ['admin-journals'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('journals')
+        .select('*')
+        .order('name');
+      if (error) throw error;
+      return data as Journal[];
+    },
+  });
+
+  // Cron jobs query
+  const { data: cronJobs, isLoading: cronLoading } = useQuery({
+    queryKey: ['admin-cron-jobs'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('cron_jobs')
+        .select('*')
+        .order('job_name');
+      if (error) throw error;
+      return data as CronJob[];
+    },
+    refetchInterval: 30000,
+  });
+
+  // Toggle journal active state
+  const toggleJournalMutation = useMutation({
+    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+      const { error } = await supabase
+        .from('journals')
+        .update({ is_active })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-journals'] });
+    },
+  });
+
+  // Add journal
+  const addJournalMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from('journals').insert({
+        name: newJournal.name,
+        issn: newJournal.issn || null,
+        impact_factor: newJournal.impact_factor
+          ? parseFloat(newJournal.impact_factor)
+          : null,
+        is_active: true,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-journals'] });
+      setNewJournal({ name: '', issn: '', impact_factor: '' });
+      setJournalFormOpen(false);
+    },
+  });
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Admin Settings</h1>
+        <p className="text-muted-foreground mt-1">
+          Manage journals, monitor cron jobs, and view system information.
+        </p>
+      </div>
+
+      <Tabs defaultValue="journals">
+        <TabsList>
+          <TabsTrigger value="journals">Journals</TabsTrigger>
+          <TabsTrigger value="cron">Cron Jobs</TabsTrigger>
+          <TabsTrigger value="system">System Info</TabsTrigger>
+        </TabsList>
+
+        {/* Journals Tab */}
+        <TabsContent value="journals" className="mt-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Monitored Journals</h2>
+            <button
+              onClick={() => setJournalFormOpen(!journalFormOpen)}
+              className="inline-flex items-center gap-2 rounded-md text-sm font-medium bg-primary text-primary-foreground h-9 px-4 hover:bg-primary/90 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Add Journal
+            </button>
+          </div>
+
+          {/* Add Journal Form */}
+          {journalFormOpen && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Add New Journal</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Name *</label>
+                    <input
+                      type="text"
+                      value={newJournal.name}
+                      onChange={(e) =>
+                        setNewJournal((prev) => ({ ...prev, name: e.target.value }))
+                      }
+                      placeholder="e.g. Nature Stem Cell Research"
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">ISSN</label>
+                    <input
+                      type="text"
+                      value={newJournal.issn}
+                      onChange={(e) =>
+                        setNewJournal((prev) => ({ ...prev, issn: e.target.value }))
+                      }
+                      placeholder="e.g. 1234-5678"
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Impact Factor</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={newJournal.impact_factor}
+                      onChange={(e) =>
+                        setNewJournal((prev) => ({ ...prev, impact_factor: e.target.value }))
+                      }
+                      placeholder="e.g. 12.5"
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => addJournalMutation.mutate()}
+                    disabled={!newJournal.name || addJournalMutation.isPending}
+                    className="inline-flex items-center gap-2 rounded-md text-sm font-medium bg-primary text-primary-foreground h-9 px-4 hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                  >
+                    {addJournalMutation.isPending && (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    )}
+                    Add Journal
+                  </button>
+                  <button
+                    onClick={() => {
+                      setJournalFormOpen(false);
+                      setNewJournal({ name: '', issn: '', impact_factor: '' });
+                    }}
+                    className="inline-flex items-center gap-2 rounded-md text-sm font-medium border border-input bg-background h-9 px-4 hover:bg-accent transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {addJournalMutation.isError && (
+                  <p className="text-sm text-destructive">
+                    Failed to add journal: {(addJournalMutation.error as Error).message}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Journals list */}
+          {journalsLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : journals && journals.length > 0 ? (
+            <div className="space-y-2">
+              {journals.map((journal) => (
+                <Card key={journal.id}>
+                  <CardContent className="flex items-center justify-between py-3">
+                    <div className="flex items-center gap-3">
+                      <BookOpen className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">{journal.name}</span>
+                          {journal.is_active ? (
+                            <Badge variant="default" className="text-xs">Active</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-xs">Inactive</Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                          {journal.issn && <span>ISSN: {journal.issn}</span>}
+                          {journal.impact_factor && (
+                            <span>IF: {journal.impact_factor}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() =>
+                        toggleJournalMutation.mutate({
+                          id: journal.id,
+                          is_active: !journal.is_active,
+                        })
+                      }
+                      disabled={toggleJournalMutation.isPending}
+                      className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                      title={journal.is_active ? 'Deactivate' : 'Activate'}
+                    >
+                      {journal.is_active ? (
+                        <ToggleRight className="h-6 w-6 text-primary" />
+                      ) : (
+                        <ToggleLeft className="h-6 w-6" />
+                      )}
+                    </button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>No journals configured yet.</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Cron Jobs Tab */}
+        <TabsContent value="cron" className="mt-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Cron Job Status</h2>
+            <span className="text-xs text-muted-foreground">Auto-refreshes every 30s</span>
+          </div>
+
+          {cronLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-20 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : cronJobs && cronJobs.length > 0 ? (
+            <div className="space-y-3">
+              {cronJobs.map((job) => (
+                <Card key={job.id}>
+                  <CardContent className="py-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          {job.last_status === 'success' && (
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                          )}
+                          {job.last_status === 'failed' && (
+                            <XCircle className="h-4 w-4 text-destructive" />
+                          )}
+                          {job.last_status === 'running' && (
+                            <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+                          )}
+                          {!job.last_status && (
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                          )}
+                          <span className="font-medium text-sm font-mono">
+                            {job.job_name}
+                          </span>
+                        </div>
+                        {job.last_status && (
+                          <Badge variant={cronStatusVariant[job.last_status] || 'outline'}>
+                            {job.last_status}
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="text-right text-xs text-muted-foreground">
+                        {job.last_run_at ? (
+                          <span>
+                            Last run: {format(new Date(job.last_run_at), 'MMM d, yyyy h:mm a')}
+                          </span>
+                        ) : (
+                          <span>Never run</span>
+                        )}
+                        {job.items_processed > 0 && (
+                          <p>{job.items_processed} items processed</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {job.last_error && (
+                      <div className="mt-3 flex items-start gap-2 text-sm text-destructive bg-destructive/10 rounded-md p-3">
+                        <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                        <span className="font-mono text-xs">{job.last_error}</span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                <Clock className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>No cron jobs registered yet.</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* System Info Tab */}
+        <TabsContent value="system" className="mt-6 space-y-4">
+          <h2 className="text-lg font-semibold">System Information</h2>
+
+          <Card>
+            <CardContent className="py-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <Server className="h-5 w-5 text-muted-foreground" />
+                <CardTitle className="text-base">Environment</CardTitle>
+              </div>
+
+              <Separator />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">NODE_ENV</p>
+                  <Badge variant="outline" className="font-mono">
+                    {process.env.NODE_ENV || 'unknown'}
+                  </Badge>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">Supabase URL</p>
+                  <p className="text-sm font-mono truncate">
+                    {process.env.NEXT_PUBLIC_SUPABASE_URL
+                      ? process.env.NEXT_PUBLIC_SUPABASE_URL.replace(/https?:\/\//, '').split('.')[0] + '.supabase.co'
+                      : 'Not configured'}
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">Platform</p>
+                  <p className="text-sm">Next.js (App Router)</p>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">Database</p>
+                  <p className="text-sm">Supabase (PostgreSQL)</p>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="flex items-start gap-2 text-sm text-muted-foreground bg-muted rounded-md p-3">
+                <Info className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>
+                  For detailed system logs and monitoring, check your Supabase dashboard
+                  and Vercel deployment logs.
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
