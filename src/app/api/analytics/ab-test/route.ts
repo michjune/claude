@@ -59,7 +59,8 @@ export async function GET(request: Request) {
   const contentMap = new Map<string, { title: string; slug: string; preset: string }>();
 
   for (const c of allContent || []) {
-    const preset = (c.metadata as Record<string, unknown>)?.ab_preset as string;
+    const metadata = c.metadata as Record<string, unknown> | null;
+    const preset = typeof metadata?.ab_preset === 'string' ? metadata.ab_preset : null;
     if (preset === 'preset_1') {
       preset1Content.push(c.id);
       contentMap.set(c.id, { title: c.title || '', slug: c.slug || '', preset: 'preset_1' });

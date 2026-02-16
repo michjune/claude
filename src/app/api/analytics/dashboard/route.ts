@@ -23,8 +23,11 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const period = searchParams.get('period') || '30d';
 
-  const daysMap: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90 };
+  const daysMap: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90, 'all': 0 };
   const days = daysMap[period];
+  if (days === undefined) {
+    return NextResponse.json({ error: 'Invalid period' }, { status: 400 });
+  }
 
   const admin = createAdminClient();
 
@@ -76,12 +79,12 @@ export async function GET(request: Request) {
       };
     }
     const agg = contentAgg[row.content_id];
-    agg.views += row.views;
-    agg.unique_visitors += row.unique_visitors;
-    agg.shares += row.shares;
-    agg.bookmarks += row.bookmarks;
-    agg.avg_scroll_depth += row.avg_scroll_depth;
-    agg.avg_time_on_page += row.avg_time_on_page;
+    agg.views += row.views ?? 0;
+    agg.unique_visitors += row.unique_visitors ?? 0;
+    agg.shares += row.shares ?? 0;
+    agg.bookmarks += row.bookmarks ?? 0;
+    agg.avg_scroll_depth += row.avg_scroll_depth ?? 0;
+    agg.avg_time_on_page += row.avg_time_on_page ?? 0;
     agg.days += 1;
   }
 

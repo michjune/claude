@@ -15,14 +15,18 @@ export function PostAnalytics({ contentId }: PostAnalyticsProps) {
   const hasTrackedUnload = useRef(false);
 
   useEffect(() => {
-    // Scroll depth tracking
+    // Scroll depth tracking (debounced)
+    let scrollTimeout: ReturnType<typeof setTimeout>;
     const handleScroll = () => {
-      const scrollTop = window.scrollY;
-      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-      if (docHeight > 0) {
-        const percent = Math.round((scrollTop / docHeight) * 100);
-        trackScrollDepth(percent);
-      }
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        const scrollTop = window.scrollY;
+        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        if (docHeight > 0) {
+          const percent = Math.round((scrollTop / docHeight) * 100);
+          trackScrollDepth(percent);
+        }
+      }, 150);
     };
 
     // Time on page tracking
@@ -33,15 +37,19 @@ export function PostAnalytics({ contentId }: PostAnalyticsProps) {
       trackEvent('time_on_page', { seconds: timeSpent });
     };
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') handleUnload();
+    };
+
     window.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('beforeunload', handleUnload);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') handleUnload();
-    });
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
+      clearTimeout(scrollTimeout);
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('beforeunload', handleUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [trackEvent, trackScrollDepth]);
 

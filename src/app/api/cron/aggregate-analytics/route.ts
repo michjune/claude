@@ -47,7 +47,14 @@ export async function POST(request: Request) {
       }
 
       // Referrer aggregation
-      const ref = pv.referrer ? new URL(pv.referrer).hostname : 'Direct';
+      let ref = 'Direct';
+      if (pv.referrer) {
+        try {
+          ref = new URL(pv.referrer).hostname;
+        } catch {
+          ref = 'Other';
+        }
+      }
       referrerCounts[ref] = (referrerCounts[ref] || 0) + 1;
 
       // Device aggregation

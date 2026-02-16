@@ -1,6 +1,6 @@
 'use client';
 
-import { Share2, Twitter, Linkedin, Facebook, Link2, Check } from 'lucide-react';
+import { Share2, Twitter, Linkedin, Link2, Check } from 'lucide-react';
 import { useState } from 'react';
 import { useTrackEvent } from '@/hooks/useTrackEvent';
 
@@ -50,17 +50,6 @@ export function ShareButtons({ url, title, contentId }: ShareButtonsProps) {
         onClick={() => trackEvent('share', { platform: 'linkedin' })}
       >
         <Linkedin className="h-4 w-4" />
-      </a>
-
-      <a
-        href={`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="p-2 rounded-md hover:bg-accent transition-colors"
-        title="Share on Facebook"
-        onClick={() => trackEvent('share', { platform: 'facebook' })}
-      >
-        <Facebook className="h-4 w-4" />
       </a>
 
       <button
