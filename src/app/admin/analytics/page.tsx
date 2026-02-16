@@ -17,7 +17,7 @@ import {
   BarChart,
   Bar,
 } from 'recharts';
-import { Eye, Users, Clock, Globe, FlaskConical, Search } from 'lucide-react';
+import { Eye, Users, Clock, Globe, FlaskConical, Search, MousePointerClick, BarChart3, Target, ArrowUpDown } from 'lucide-react';
 
 const PERIODS = [
   { label: '7 days', value: '7d' },
@@ -73,6 +73,29 @@ export default function AnalyticsPage() {
     count: number;
     avg_results: number;
   }>;
+
+  const gscQueryData = (data?.gscQueryData || []) as Array<{
+    query: string;
+    clicks: number;
+    impressions: number;
+    ctr: number;
+    position: number;
+  }>;
+
+  const gscPageData = (data?.gscPageData || []) as Array<{
+    page: string;
+    clicks: number;
+    impressions: number;
+    ctr: number;
+    position: number;
+  }>;
+
+  const gscTotals = data?.gscTotals as {
+    clicks: number;
+    impressions: number;
+    avgCtr: number;
+    avgPosition: number;
+  } | undefined;
 
   return (
     <div className="space-y-8">
@@ -138,6 +161,32 @@ export default function AnalyticsPage() {
               icon={<Globe className="h-5 w-5" />}
             />
           </div>
+
+          {/* Google Search Console cards */}
+          {gscTotals && gscTotals.clicks > 0 && (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <StatCard
+                title="Google Clicks"
+                value={gscTotals.clicks.toLocaleString()}
+                icon={<MousePointerClick className="h-5 w-5" />}
+              />
+              <StatCard
+                title="Google Impressions"
+                value={gscTotals.impressions.toLocaleString()}
+                icon={<BarChart3 className="h-5 w-5" />}
+              />
+              <StatCard
+                title="Avg CTR"
+                value={`${(gscTotals.avgCtr * 100).toFixed(1)}%`}
+                icon={<Target className="h-5 w-5" />}
+              />
+              <StatCard
+                title="Avg Position"
+                value={gscTotals.avgPosition.toFixed(1)}
+                icon={<ArrowUpDown className="h-5 w-5" />}
+              />
+            </div>
+          )}
 
           {/* Traffic over time */}
           <div className="rounded-lg border bg-card p-6">
@@ -205,6 +254,85 @@ export default function AnalyticsPage() {
               <EmptyState message="No content data yet for this period" />
             )}
           </div>
+
+          {/* Google Search Console tables */}
+          {gscQueryData.length > 0 && (
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Google Search Queries */}
+              <div className="rounded-lg border bg-card p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Search className="h-5 w-5 text-primary" />
+                  <h2 className="text-lg font-semibold">Google Search Queries</h2>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Top queries from Google Search Console driving traffic to your site.
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-muted-foreground">
+                        <th className="text-left py-2 pr-4 font-medium">Query</th>
+                        <th className="text-right py-2 px-2 font-medium">Clicks</th>
+                        <th className="text-right py-2 px-2 font-medium">Impr.</th>
+                        <th className="text-right py-2 px-2 font-medium">CTR</th>
+                        <th className="text-right py-2 pl-2 font-medium">Position</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {gscQueryData.map((row) => (
+                        <tr key={row.query} className="border-b last:border-0">
+                          <td className="py-2 pr-4 font-medium">{row.query}</td>
+                          <td className="text-right py-2 px-2">{row.clicks.toLocaleString()}</td>
+                          <td className="text-right py-2 px-2">{row.impressions.toLocaleString()}</td>
+                          <td className="text-right py-2 px-2">{(row.ctr * 100).toFixed(1)}%</td>
+                          <td className="text-right py-2 pl-2">{row.position.toFixed(1)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Top Landing Pages (Google) */}
+              <div className="rounded-lg border bg-card p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Globe className="h-5 w-5 text-primary" />
+                  <h2 className="text-lg font-semibold">Top Landing Pages (Google)</h2>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Pages receiving the most clicks from Google search results.
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-muted-foreground">
+                        <th className="text-left py-2 pr-4 font-medium">Page</th>
+                        <th className="text-right py-2 px-2 font-medium">Clicks</th>
+                        <th className="text-right py-2 px-2 font-medium">Impr.</th>
+                        <th className="text-right py-2 px-2 font-medium">CTR</th>
+                        <th className="text-right py-2 pl-2 font-medium">Position</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {gscPageData.map((row) => (
+                        <tr key={row.page} className="border-b last:border-0">
+                          <td className="py-2 pr-4">
+                            <span className="text-primary text-xs truncate block max-w-[250px]" title={row.page}>
+                              {row.page.replace(/^https?:\/\/[^/]+/, '')}
+                            </span>
+                          </td>
+                          <td className="text-right py-2 px-2">{row.clicks.toLocaleString()}</td>
+                          <td className="text-right py-2 px-2">{row.impressions.toLocaleString()}</td>
+                          <td className="text-right py-2 px-2">{(row.ctr * 100).toFixed(1)}%</td>
+                          <td className="text-right py-2 pl-2">{row.position.toFixed(1)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Search Terms row */}
           <div className="grid gap-6 md:grid-cols-2">

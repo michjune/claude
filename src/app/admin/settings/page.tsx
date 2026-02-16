@@ -25,6 +25,9 @@ import {
   Info,
   Sparkles,
   Save,
+  Search,
+  Link as LinkIcon,
+  Unlink,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -97,6 +100,53 @@ export default function AdminSettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-tone-settings'] });
     },
   });
+
+  // GSC settings
+  const [gscSiteUrl, setGscSiteUrl] = useState('');
+
+  const { data: gscStatus, isLoading: gscLoading, refetch: refetchGsc } = useQuery({
+    queryKey: ['gsc-status'],
+    queryFn: async () => {
+      const res = await fetch('/api/settings/search-console');
+      if (!res.ok) throw new Error('Failed to fetch GSC status');
+      return res.json() as Promise<{
+        connected: boolean;
+        siteUrl: string | null;
+        lastSync: string | null;
+        lastStatus: string | null;
+        itemsProcessed: number;
+        oauthUrl: string;
+      }>;
+    },
+  });
+
+  const saveSiteUrlMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/settings/search-console', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteUrl: gscSiteUrl }),
+      });
+      if (!res.ok) throw new Error('Failed to save site URL');
+    },
+    onSuccess: () => refetchGsc(),
+  });
+
+  const disconnectGscMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/settings/search-console', { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to disconnect');
+    },
+    onSuccess: () => {
+      setGscSiteUrl('');
+      refetchGsc();
+    },
+  });
+
+  // Sync GSC site URL when data loads
+  useEffect(() => {
+    if (gscStatus?.siteUrl) setGscSiteUrl(gscStatus.siteUrl);
+  }, [gscStatus?.siteUrl]);
 
   const TONE_PRESETS = ['Professional', 'Casual', 'Enthusiastic', 'Custom'] as const;
 
@@ -175,6 +225,7 @@ export default function AdminSettingsPage() {
           <TabsTrigger value="journals">Journals</TabsTrigger>
           <TabsTrigger value="tone">AI Tone</TabsTrigger>
           <TabsTrigger value="cron">Cron Jobs</TabsTrigger>
+          <TabsTrigger value="search-console">Search Console</TabsTrigger>
           <TabsTrigger value="system">System Info</TabsTrigger>
         </TabsList>
 
@@ -525,6 +576,128 @@ export default function AdminSettingsPage() {
                 <p>No cron jobs registered yet.</p>
               </CardContent>
             </Card>
+          )}
+        </TabsContent>
+
+        {/* Search Console Tab */}
+        <TabsContent value="search-console" className="mt-6 space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold">Google Search Console</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Connect Google Search Console to see which Google queries drive traffic to your site.
+            </p>
+          </div>
+
+          {gscLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <Skeleton key={i} className="h-24 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Connection Status */}
+              <Card>
+                <CardContent className="py-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Search className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">Connection Status</span>
+                    </div>
+                    {gscStatus?.connected ? (
+                      <Badge variant="default">Connected</Badge>
+                    ) : (
+                      <Badge variant="outline">Not Connected</Badge>
+                    )}
+                  </div>
+
+                  {gscStatus?.connected && gscStatus.siteUrl && (
+                    <div className="text-sm text-muted-foreground">
+                      <p>Site: <span className="font-mono">{gscStatus.siteUrl}</span></p>
+                      {gscStatus.lastSync && (
+                        <p className="mt-1">
+                          Last sync: {format(new Date(gscStatus.lastSync), 'MMM d, yyyy h:mm a')}
+                          {gscStatus.lastStatus && (
+                            <Badge
+                              variant={cronStatusVariant[gscStatus.lastStatus] || 'outline'}
+                              className="ml-2"
+                            >
+                              {gscStatus.lastStatus}
+                            </Badge>
+                          )}
+                          {gscStatus.itemsProcessed > 0 && (
+                            <span className="ml-2">({gscStatus.itemsProcessed} queries)</span>
+                          )}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Site URL */}
+              <Card>
+                <CardContent className="py-4 space-y-3">
+                  <label className="text-sm font-medium">Site URL</label>
+                  <p className="text-xs text-muted-foreground">
+                    The property URL as it appears in Google Search Console (e.g., https://example.com or sc-domain:example.com).
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={gscSiteUrl}
+                      onChange={(e) => setGscSiteUrl(e.target.value)}
+                      placeholder="https://yoursite.com"
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                    <button
+                      onClick={() => saveSiteUrlMutation.mutate()}
+                      disabled={!gscSiteUrl || saveSiteUrlMutation.isPending}
+                      className="inline-flex items-center gap-2 rounded-md text-sm font-medium bg-primary text-primary-foreground h-9 px-4 hover:bg-primary/90 disabled:opacity-50 transition-colors whitespace-nowrap"
+                    >
+                      {saveSiteUrlMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4" />
+                      )}
+                      Save
+                    </button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Connect / Disconnect */}
+              <div className="flex items-center gap-3">
+                {gscStatus?.connected ? (
+                  <button
+                    onClick={() => disconnectGscMutation.mutate()}
+                    disabled={disconnectGscMutation.isPending}
+                    className="inline-flex items-center gap-2 rounded-md text-sm font-medium border border-destructive text-destructive h-9 px-4 hover:bg-destructive/10 disabled:opacity-50 transition-colors"
+                  >
+                    {disconnectGscMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Unlink className="h-4 w-4" />
+                    )}
+                    Disconnect
+                  </button>
+                ) : (
+                  <a
+                    href={gscStatus?.oauthUrl}
+                    className="inline-flex items-center gap-2 rounded-md text-sm font-medium bg-primary text-primary-foreground h-9 px-4 hover:bg-primary/90 transition-colors"
+                  >
+                    <LinkIcon className="h-4 w-4" />
+                    Connect Google Search Console
+                  </a>
+                )}
+                {disconnectGscMutation.isSuccess && (
+                  <span className="text-sm text-green-600 flex items-center gap-1">
+                    <CheckCircle className="h-4 w-4" />
+                    Disconnected
+                  </span>
+                )}
+              </div>
+            </div>
           )}
         </TabsContent>
 

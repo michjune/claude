@@ -57,11 +57,11 @@ export async function GET(request: Request) {
 
   const { data: contentStats } = await contentStatsQuery;
 
-  // Fetch search term events (both search_referrer and site_search)
+  // Fetch search term events (search_referrer, site_search, and gsc_query)
   const { data: searchEvents } = await admin
     .from('analytics_events')
     .select('event_type, event_data, content_id')
-    .in('event_type', ['search_referrer', 'site_search'])
+    .in('event_type', ['search_referrer', 'site_search', 'gsc_query'])
     .gte('created_at', dateFilterISO);
 
   // Aggregate content stats
@@ -212,6 +212,72 @@ export async function GET(request: Request) {
     .sort((a, b) => b.count - a.count)
     .slice(0, 20);
 
+  // Aggregate GSC query data
+  const gscQueryAgg: Record<string, { clicks: number; impressions: number; positionSum: number; count: number }> = {};
+  const gscPageAgg: Record<string, { clicks: number; impressions: number; positionSum: number; count: number }> = {};
+  let gscTotalClicks = 0;
+  let gscTotalImpressions = 0;
+  let gscPositionWeightedSum = 0;
+
+  for (const ev of searchEvents || []) {
+    if (ev.event_type !== 'gsc_query') continue;
+    const d = ev.event_data as Record<string, unknown>;
+    const query = (d?.query as string) || '';
+    const page = (d?.page as string) || '';
+    const clicks = (d?.clicks as number) || 0;
+    const impressions = (d?.impressions as number) || 0;
+    const position = (d?.position as number) || 0;
+
+    gscTotalClicks += clicks;
+    gscTotalImpressions += impressions;
+    gscPositionWeightedSum += position * impressions;
+
+    if (query) {
+      if (!gscQueryAgg[query]) gscQueryAgg[query] = { clicks: 0, impressions: 0, positionSum: 0, count: 0 };
+      gscQueryAgg[query].clicks += clicks;
+      gscQueryAgg[query].impressions += impressions;
+      gscQueryAgg[query].positionSum += position * impressions;
+      gscQueryAgg[query].count++;
+    }
+
+    if (page) {
+      if (!gscPageAgg[page]) gscPageAgg[page] = { clicks: 0, impressions: 0, positionSum: 0, count: 0 };
+      gscPageAgg[page].clicks += clicks;
+      gscPageAgg[page].impressions += impressions;
+      gscPageAgg[page].positionSum += position * impressions;
+      gscPageAgg[page].count++;
+    }
+  }
+
+  const gscQueryData = Object.entries(gscQueryAgg)
+    .map(([query, agg]) => ({
+      query,
+      clicks: agg.clicks,
+      impressions: agg.impressions,
+      ctr: agg.impressions > 0 ? agg.clicks / agg.impressions : 0,
+      position: agg.impressions > 0 ? agg.positionSum / agg.impressions : 0,
+    }))
+    .sort((a, b) => b.clicks - a.clicks)
+    .slice(0, 50);
+
+  const gscPageData = Object.entries(gscPageAgg)
+    .map(([page, agg]) => ({
+      page,
+      clicks: agg.clicks,
+      impressions: agg.impressions,
+      ctr: agg.impressions > 0 ? agg.clicks / agg.impressions : 0,
+      position: agg.impressions > 0 ? agg.positionSum / agg.impressions : 0,
+    }))
+    .sort((a, b) => b.clicks - a.clicks)
+    .slice(0, 20);
+
+  const gscTotals = {
+    clicks: gscTotalClicks,
+    impressions: gscTotalImpressions,
+    avgCtr: gscTotalImpressions > 0 ? gscTotalClicks / gscTotalImpressions : 0,
+    avgPosition: gscTotalImpressions > 0 ? gscPositionWeightedSum / gscTotalImpressions : 0,
+  };
+
   return NextResponse.json({
     totals,
     dailyStats: siteStats || [],
@@ -221,5 +287,8 @@ export async function GET(request: Request) {
     utmBreakdown: utmTotals,
     searchReferrerTerms,
     siteSearchTerms,
+    gscQueryData,
+    gscPageData,
+    gscTotals,
   });
 }
