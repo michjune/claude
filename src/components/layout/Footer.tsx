@@ -42,8 +42,10 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 pt-8 border-t text-center text-sm text-muted-foreground/60">
-          <p>&copy; {new Date().getFullYear()} StemCell Pulse</p>
+        <div className="mt-16 pt-8 border-t text-center">
+          <p className="text-[13px] text-[#6B7280]">
+            &copy; {new Date().getFullYear()} StemCell Pulse &middot; Independent research intelligence platform
+          </p>
         </div>
       </div>
     </footer>

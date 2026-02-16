@@ -70,7 +70,7 @@ export default async function HomePage() {
               <span className="text-primary">Tracked in Real Time.</span>
             </h1>
             <p className="mt-5 text-lg text-muted-foreground max-w-xl leading-relaxed">
-              Papers, clinical trials, and regulatory updates from 40+ high-impact journals. Summarized daily by AI. Built for researchers who value their time.
+              Papers, clinical trials, and regulatory updates from 40+ high-impact journals. Summarized daily by AI. Trusted by clinicians, scientists, and biotech leaders.
             </p>
           </div>
         </section>
