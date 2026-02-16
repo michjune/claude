@@ -97,12 +97,28 @@ export async function GET(request: Request) {
       if (!account) continue;
 
       const result = await publishContent(content as Content, account);
+      const publishedAt = new Date().toISOString();
       if (result.success) {
         published++;
         await supabase
           .from('content')
-          .update({ status: 'published', published_at: new Date().toISOString() })
+          .update({ status: 'published', published_at: publishedAt })
           .eq('id', content.id);
+
+        await supabase.from('activity_log').insert({
+          action: 'publish_social',
+          entity_type: 'content',
+          entity_id: content.id,
+          details: {
+            platform,
+            scheduled_at: content.scheduled_at,
+            published_at: publishedAt,
+            delay_minutes: content.scheduled_at
+              ? Math.round((new Date(publishedAt).getTime() - new Date(content.scheduled_at).getTime()) / 60000)
+              : null,
+            post_url: result.postUrl,
+          },
+        });
       }
     }
 

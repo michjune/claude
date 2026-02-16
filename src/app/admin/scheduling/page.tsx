@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
 import type { PlatformSetting, Platform, PublishMode } from '@/lib/supabase/types';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -19,6 +18,9 @@ import {
   Save,
   CheckCircle,
   AlertCircle,
+  Plus,
+  X,
+  Clock,
 } from 'lucide-react';
 
 const platformIcons: Record<Platform, React.ElementType> = {
@@ -39,6 +41,15 @@ const platformLabels: Record<Platform, string> = {
   tiktok: 'TikTok',
 };
 
+const DEFAULT_BEST_TIMES: Record<Platform, string[]> = {
+  twitter: ['13:00', '17:00'],
+  linkedin: ['12:00', '15:00'],
+  instagram: ['14:00', '19:00'],
+  facebook: ['13:00', '16:00'],
+  tiktok: ['19:00', '21:00'],
+  youtube: ['15:00', '18:00'],
+};
+
 const ALL_PLATFORMS: Platform[] = ['twitter', 'instagram', 'linkedin', 'facebook', 'youtube', 'tiktok'];
 
 interface LocalSetting {
@@ -47,6 +58,8 @@ interface LocalSetting {
   is_active: boolean;
   publish_mode: PublishMode;
   max_posts_per_day: number;
+  best_times: string[];
+  has_custom_times: boolean;
 }
 
 export default function SchedulingPage() {
@@ -54,6 +67,8 @@ export default function SchedulingPage() {
   const queryClient = useQueryClient();
   const [localSettings, setLocalSettings] = useState<Record<Platform, LocalSetting>>({} as Record<Platform, LocalSetting>);
   const [saveStatus, setSaveStatus] = useState<Record<Platform, 'idle' | 'saving' | 'saved' | 'error'>>({} as Record<Platform, 'idle' | 'saving' | 'saved' | 'error'>);
+  const [addingTime, setAddingTime] = useState<Record<Platform, boolean>>({} as Record<Platform, boolean>);
+  const [newTimeValue, setNewTimeValue] = useState<Record<Platform, string>>({} as Record<Platform, string>);
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ['admin-platform-settings'],
@@ -74,12 +89,15 @@ export default function SchedulingPage() {
 
       ALL_PLATFORMS.forEach((platform) => {
         const existing = settings.find((s) => s.platform === platform);
+        const hasCustom = existing?.best_times && existing.best_times.length > 0;
         mapped[platform] = {
           id: existing?.id,
           platform,
           is_active: existing?.is_active ?? false,
           publish_mode: existing?.publish_mode ?? 'approval_required',
           max_posts_per_day: existing?.max_posts_per_day ?? 3,
+          best_times: hasCustom ? existing!.best_times : DEFAULT_BEST_TIMES[platform],
+          has_custom_times: !!hasCustom,
         };
         statusMap[platform] = 'idle';
       });
@@ -101,6 +119,7 @@ export default function SchedulingPage() {
         is_active: setting.is_active,
         publish_mode: setting.publish_mode,
         max_posts_per_day: setting.max_posts_per_day,
+        best_times: setting.has_custom_times ? setting.best_times : [],
       };
 
       if (setting.id) {
@@ -138,6 +157,25 @@ export default function SchedulingPage() {
     }));
   };
 
+  const addTime = (platform: Platform, time: string) => {
+    const setting = localSettings[platform];
+    if (!setting || setting.best_times.includes(time)) return;
+    const sorted = [...setting.best_times, time].sort();
+    updateSetting(platform, { best_times: sorted, has_custom_times: true });
+    setAddingTime((prev) => ({ ...prev, [platform]: false }));
+    setNewTimeValue((prev) => ({ ...prev, [platform]: '' }));
+  };
+
+  const removeTime = (platform: Platform, time: string) => {
+    const setting = localSettings[platform];
+    if (!setting) return;
+    const filtered = setting.best_times.filter((t) => t !== time);
+    updateSetting(platform, {
+      best_times: filtered.length > 0 ? filtered : DEFAULT_BEST_TIMES[platform],
+      has_custom_times: filtered.length > 0,
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -161,6 +199,7 @@ export default function SchedulingPage() {
 
             const Icon = platformIcons[platform];
             const status = saveStatus[platform] || 'idle';
+            const isAdding = addingTime[platform] || false;
 
             return (
               <Card key={platform} className={cn(!setting.is_active && 'opacity-70')}>
@@ -221,6 +260,74 @@ export default function SchedulingPage() {
                       }
                       className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5" />
+                        Publish Windows (UTC)
+                      </label>
+                      {!setting.has_custom_times && (
+                        <span className="text-xs text-muted-foreground">(defaults)</span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {setting.best_times.map((time) => (
+                        <button
+                          key={time}
+                          onClick={() => removeTime(platform, time)}
+                          className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground hover:bg-destructive/10 hover:text-destructive transition-colors group"
+                          title="Click to remove"
+                        >
+                          {time}
+                          <X className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </button>
+                      ))}
+                      {isAdding ? (
+                        <div className="inline-flex items-center gap-1">
+                          <input
+                            type="time"
+                            value={newTimeValue[platform] || ''}
+                            onChange={(e) =>
+                              setNewTimeValue((prev) => ({ ...prev, [platform]: e.target.value }))
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && newTimeValue[platform]) {
+                                addTime(platform, newTimeValue[platform]);
+                              }
+                              if (e.key === 'Escape') {
+                                setAddingTime((prev) => ({ ...prev, [platform]: false }));
+                              }
+                            }}
+                            className="h-6 w-24 rounded border border-input bg-background px-1.5 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => {
+                              if (newTimeValue[platform]) addTime(platform, newTimeValue[platform]);
+                            }}
+                            className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 text-xs"
+                          >
+                            <CheckCircle className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={() => setAddingTime((prev) => ({ ...prev, [platform]: false }))}
+                            className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-muted text-muted-foreground hover:bg-muted/80 text-xs"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setAddingTime((prev) => ({ ...prev, [platform]: true }))}
+                          className="inline-flex items-center gap-0.5 rounded-full border border-dashed border-muted-foreground/30 px-2 py-0.5 text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                        >
+                          <Plus className="h-3 w-3" />
+                          Add
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <Separator />
