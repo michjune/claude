@@ -2,19 +2,19 @@
   "crons": [
     {
       "path": "/api/cron/fetch-papers",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 6 * * *"
     },
     {
       "path": "/api/cron/generate-content",
-      "schedule": "0 1,7,13,19 * * *"
+      "schedule": "0 8 * * *"
     },
     {
       "path": "/api/cron/publish-social",
-      "schedule": "0 * * * *"
+      "schedule": "0 10 * * *"
     },
     {
       "path": "/api/cron/render-videos",
-      "schedule": "0 */2 * * *"
+      "schedule": "0 12 * * *"
     },
     {
       "path": "/api/cron/fetch-search-console",
