@@ -11,10 +11,10 @@ export interface ToneSettings {
 }
 
 const DEFAULTS: ToneSettings = {
-  tone: 'Professional',
-  blog_style: 'Write in a clear, authoritative voice that makes complex stem cell research accessible.',
-  social_style: 'Be concise and attention-grabbing. Use platform-appropriate language and hashtags.',
-  video_style: 'Use a conversational, enthusiastic tone as if explaining to a curious friend.',
+  tone: 'Sharp, curious, confident',
+  blog_style: 'Write like Not Boring or NFX essays. Lead with the insight, not the setup. Make complex stem cell research feel like the most interesting thing the reader will encounter today. Short sentences for impact. Longer ones when building toward a revelation. No throat-clearing, no hedging, no "it\'s not X, it\'s Y" constructions. Minimize em-dashes. Sound like a smart friend who happens to know a lot about biology.',
+  social_style: 'Naval Ravikant energy: high signal, zero filler. Insight-first, not summary-first. No em-dashes on TikTok or Instagram. Twitter should feel like a quote worth screenshotting. LinkedIn can build a brief argument. Instagram and TikTok should hook in the first line and feel conversational, not scripted.',
+  video_style: 'Conversational and confident, like you are telling a friend about something that genuinely blew your mind. Vary sentence length for rhythm. Open with a hook that creates a knowledge gap. Build tension before the payoff. No em-dashes. No filler phrases like "here\'s the thing" or "let\'s dive in."',
   preset_name: 'Default',
   preset_id: 'default',
 };
@@ -97,7 +97,7 @@ function buildPresetSettings(all: Record<string, string>, presetId: string): Ton
 }
 
 export function buildToneDirective(tone: string, style: string): string {
-  return `\n\nTone: ${tone}\nStyle instructions: ${style}`;
+  return `\n\nTone: ${tone}\nStyle instructions: ${style}\nCritical: Never use "it's not X, it's Y" constructions. Minimize em-dashes. No filler phrases.`;
 }
 
 export function clearToneCache(): void {
