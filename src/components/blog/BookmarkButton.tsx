@@ -3,6 +3,7 @@
 import { Bookmark, BookmarkCheck } from 'lucide-react';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { useAuth } from '@/providers/AuthProvider';
+import { useTrackEvent } from '@/hooks/useTrackEvent';
 
 interface BookmarkButtonProps {
   contentId: string;
@@ -11,6 +12,7 @@ interface BookmarkButtonProps {
 export function BookmarkButton({ contentId }: BookmarkButtonProps) {
   const { user } = useAuth();
   const { isBookmarked, addBookmark, removeBookmark } = useBookmarks();
+  const { trackEvent } = useTrackEvent(contentId);
 
   if (!user) return null;
 
@@ -21,6 +23,7 @@ export function BookmarkButton({ contentId }: BookmarkButtonProps) {
       removeBookmark.mutate(contentId);
     } else {
       addBookmark.mutate(contentId);
+      trackEvent('bookmark');
     }
   };
 

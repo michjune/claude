@@ -9,6 +9,7 @@ import {
   Share2,
   Video,
   Calendar,
+  BarChart3,
   Settings,
   ChevronLeft,
 } from 'lucide-react';
@@ -21,6 +22,7 @@ const navItems = [
   { href: '/admin/social', label: 'Social Media', icon: Share2 },
   { href: '/admin/videos', label: 'Videos', icon: Video },
   { href: '/admin/scheduling', label: 'Scheduling', icon: Calendar },
+  { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 

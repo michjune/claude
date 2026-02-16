@@ -22,6 +22,7 @@
     "openai": "^4.77.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "recharts": "^3.7.0",
     "remotion": "^4.0.422",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",

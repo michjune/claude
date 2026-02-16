@@ -182,6 +182,51 @@ export interface ActivityLog {
   created_at: string;
 }
 
+export interface PageView {
+  id: string;
+  content_id: string | null;
+  path: string;
+  referrer: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  country: string | null;
+  device_type: string | null;
+  session_id: string | null;
+  created_at: string;
+}
+
+export interface AnalyticsEvent {
+  id: string;
+  content_id: string | null;
+  event_type: string;
+  event_data: Record<string, unknown>;
+  session_id: string | null;
+  created_at: string;
+}
+
+export interface DailyContentStats {
+  id: string;
+  content_id: string;
+  date: string;
+  views: number;
+  unique_visitors: number;
+  shares: number;
+  bookmarks: number;
+  avg_scroll_depth: number;
+  avg_time_on_page: number;
+}
+
+export interface DailySiteStats {
+  id: string;
+  date: string;
+  total_views: number;
+  unique_visitors: number;
+  top_referrers: Array<{ source: string; count: number }>;
+  device_breakdown: Record<string, number>;
+  utm_breakdown: Record<string, number>;
+}
+
 // Helper type for table definitions
 type TableDef<Row, Insert = Partial<Row>, Update = Partial<Row>> = {
   Row: Row;
@@ -207,6 +252,10 @@ export interface Database {
       cron_jobs: TableDef<CronJob>;
       ai_tone_settings: TableDef<AiToneSetting>;
       activity_log: TableDef<ActivityLog>;
+      page_views: TableDef<PageView>;
+      analytics_events: TableDef<AnalyticsEvent>;
+      daily_content_stats: TableDef<DailyContentStats>;
+      daily_site_stats: TableDef<DailySiteStats>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

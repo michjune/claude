@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import { PostAnalytics } from '@/components/blog/PostAnalytics';
 
 export const revalidate = 3600;
 
@@ -281,6 +282,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       <div className="prose-stem">
         {renderMarkdown(post.body)}
       </div>
+
+      <PostAnalytics contentId={post.id} />
     </article>
   );
 }
