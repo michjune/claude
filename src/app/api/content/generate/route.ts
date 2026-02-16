@@ -203,8 +203,22 @@ export async function POST(request: Request) {
     const { error: insertError } = await admin.from('content').insert(contentItems);
     if (insertError) throw insertError;
 
-    // Mark paper as content generated
-    await admin.from('papers').update({ content_generated: true }).eq('id', paperId);
+    // Populate research feed fields on the paper
+    const sourceType = paper.trial_id ? 'trial' : (paper.journal_name ? 'journal' : 'journal');
+    let evidenceLevel = 'peer-reviewed';
+    if (paper.trial_id) {
+      evidenceLevel = 'clinical-trial';
+    } else if (paper.journal_name && /biorxiv|medrxiv|preprint/i.test(paper.journal_name)) {
+      evidenceLevel = 'preprint';
+    }
+    const keyFinding = blog.summary.split(/[.!?]/)[0]?.trim() || null;
+
+    await admin.from('papers').update({
+      content_generated: true,
+      source_type: sourceType,
+      evidence_level: evidenceLevel,
+      key_finding: keyFinding,
+    }).eq('id', paperId);
 
     await admin.from('activity_log').insert({
       user_id: user.id,

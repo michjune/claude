@@ -41,6 +41,10 @@ export interface Paper {
   source_url: string | null;
   keywords: string[];
   mesh_terms: string[];
+  source_type: string | null;
+  evidence_level: string | null;
+  key_finding: string | null;
+  trial_id: string | null;
   content_generated: boolean;
   fetched_at: string;
   metadata: Record<string, unknown>;

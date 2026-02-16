@@ -48,6 +48,9 @@ export function Header() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">
+            <Link href="/" className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-accent transition-all duration-200">
+              Research
+            </Link>
             <Link href="/posts" className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-accent transition-all duration-200">
               Blog
             </Link>
@@ -137,6 +140,9 @@ export function Header() {
       {mobileOpen && (
         <div className="md:hidden border-t bg-background/95 backdrop-blur-xl">
           <nav className="container py-4 space-y-1">
+            <Link href="/" className="block px-3 py-2.5 text-sm rounded-lg hover:bg-accent transition-colors" onClick={() => setMobileOpen(false)}>
+              Research
+            </Link>
             <Link href="/posts" className="block px-3 py-2.5 text-sm rounded-lg hover:bg-accent transition-colors" onClick={() => setMobileOpen(false)}>
               Blog
             </Link>
