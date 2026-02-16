@@ -1,6 +1,7 @@
 import { generateStructuredContent } from './anthropic';
 import { SYSTEM_PROMPTS, buildVideoScriptPrompt } from './prompts';
-import { getToneSettings, buildToneDirective } from './tone';
+import { buildToneDirective } from './tone';
+import type { ToneSettings } from './tone';
 import { factCheckContent, buildResearchSummary } from './research-pipeline';
 import type { ResearchContext } from './research-pipeline';
 import type { Paper } from '@/lib/supabase/types';
@@ -19,9 +20,9 @@ interface ScriptOutput {
  */
 export async function generateVideoScript(
   paper: Paper,
-  research: ResearchContext
+  research: ResearchContext,
+  tone: ToneSettings
 ): Promise<ScriptOutput> {
-  const tone = await getToneSettings();
   const researchSummary = buildResearchSummary(research);
 
   const userPrompt = buildVideoScriptPrompt({

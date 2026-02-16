@@ -1,6 +1,7 @@
 import { generateStructuredContent } from './anthropic';
 import { SYSTEM_PROMPTS, buildBlogPrompt } from './prompts';
-import { getToneSettings, buildToneDirective } from './tone';
+import { buildToneDirective } from './tone';
+import type { ToneSettings } from './tone';
 import { factCheckContent } from './research-pipeline';
 import type { ResearchContext } from './research-pipeline';
 import type { Paper } from '@/lib/supabase/types';
@@ -23,9 +24,9 @@ interface BlogOutput {
  */
 export async function generateBlogPost(
   paper: Paper,
-  research: ResearchContext
+  research: ResearchContext,
+  tone: ToneSettings
 ): Promise<BlogOutput> {
-  const tone = await getToneSettings();
   const toneDirective = buildToneDirective(tone.tone, tone.blog_style);
 
   // Step 1: Generate initial draft

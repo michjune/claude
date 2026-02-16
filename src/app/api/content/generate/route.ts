@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getToneSettings } from '@/lib/ai/tone';
 import { runResearchPipeline } from '@/lib/ai/research-pipeline';
 import { generateBlogPost } from '@/lib/ai/blog-generator';
 import { generateSocialContent } from '@/lib/ai/social-generator';
@@ -30,20 +31,24 @@ export async function POST(request: Request) {
   }
 
   try {
-    // Step 0: Run research pipeline (shared across all generators)
+    // Step 0: Select tone (A/B test picks one preset for this entire run)
+    const tone = await getToneSettings();
+    console.log(`[generate] Using tone preset: ${tone.preset_name} (${tone.preset_id})`);
+
+    // Step 1: Run research pipeline (shared across all generators)
     console.log('[generate] Running research pipeline...');
     const research = await runResearchPipeline(paper as Paper);
     console.log(`[generate] Found ${research.literature.references.length} cross-references`);
 
-    // Generate all content with shared research context
+    // Generate all content with shared research context + same tone
     // Blog runs first (most complex), social + video can run in parallel after
     console.log('[generate] Generating blog post...');
-    const blog = await generateBlogPost(paper as Paper, research);
+    const blog = await generateBlogPost(paper as Paper, research, tone);
 
     console.log('[generate] Generating social + video in parallel...');
     const [social, videoScript] = await Promise.all([
-      generateSocialContent(paper as Paper, research),
-      generateVideoScript(paper as Paper, research),
+      generateSocialContent(paper as Paper, research, tone),
+      generateVideoScript(paper as Paper, research, tone),
     ]);
 
     // Generate blog featured image
@@ -97,6 +102,9 @@ export async function POST(request: Request) {
           keywords: blog.keywords,
           ...imageMetadata,
           research_refs: research.literature.references.length,
+          fact_checked: true,
+          ab_preset: tone.preset_id,
+          ab_preset_name: tone.preset_name,
         },
       },
       {
@@ -110,7 +118,7 @@ export async function POST(request: Request) {
         seo_title: null,
         seo_description: null,
         created_by: user.id,
-        metadata: { fact_checked: true },
+        metadata: { fact_checked: true, ab_preset: tone.preset_id, ab_preset_name: tone.preset_name },
       },
       {
         paper_id: paperId,
@@ -123,7 +131,7 @@ export async function POST(request: Request) {
         seo_title: null,
         seo_description: null,
         created_by: user.id,
-        metadata: { fact_checked: true },
+        metadata: { fact_checked: true, ab_preset: tone.preset_id, ab_preset_name: tone.preset_name },
       },
       {
         paper_id: paperId,
@@ -136,7 +144,7 @@ export async function POST(request: Request) {
         seo_title: null,
         seo_description: null,
         created_by: user.id,
-        metadata: { fact_checked: true },
+        metadata: { fact_checked: true, ab_preset: tone.preset_id, ab_preset_name: tone.preset_name },
       },
       {
         paper_id: paperId,
@@ -149,7 +157,7 @@ export async function POST(request: Request) {
         seo_title: null,
         seo_description: null,
         created_by: user.id,
-        metadata: { fact_checked: true },
+        metadata: { fact_checked: true, ab_preset: tone.preset_id, ab_preset_name: tone.preset_name },
       },
       {
         paper_id: paperId,
@@ -162,7 +170,7 @@ export async function POST(request: Request) {
         seo_title: null,
         seo_description: null,
         created_by: user.id,
-        metadata: { fact_checked: true },
+        metadata: { fact_checked: true, ab_preset: tone.preset_id, ab_preset_name: tone.preset_name },
       },
       {
         paper_id: paperId,
@@ -175,7 +183,7 @@ export async function POST(request: Request) {
         seo_title: null,
         seo_description: null,
         created_by: user.id,
-        metadata: { fact_checked: true },
+        metadata: { fact_checked: true, ab_preset: tone.preset_id, ab_preset_name: tone.preset_name },
       },
       {
         paper_id: paperId,
@@ -188,7 +196,7 @@ export async function POST(request: Request) {
         seo_title: null,
         seo_description: null,
         created_by: user.id,
-        metadata: { visual_cues: videoScript.visual_cues, fact_checked: true },
+        metadata: { visual_cues: videoScript.visual_cues, fact_checked: true, ab_preset: tone.preset_id, ab_preset_name: tone.preset_name },
       },
     ];
 

@@ -191,6 +191,11 @@ export default function AdminContentQueuePage() {
                     <Badge variant={statusVariant[item.status]}>
                       {item.status.replace('_', ' ')}
                     </Badge>
+                    {item.metadata?.ab_preset_name && (
+                      <Badge variant="outline" className="text-xs">
+                        {item.metadata.ab_preset_name as string}
+                      </Badge>
+                    )}
                     {isExpanded ? (
                       <ChevronUp className="h-4 w-4 text-muted-foreground" />
                     ) : (

@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { createClient } from '@/lib/supabase/client';
 import type { Content, ContentType } from '@/lib/supabase/types';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -40,8 +39,6 @@ const statusVariant = {
 
 export default function ContentEditorPage() {
   const params = useParams<{ id: string }>();
-  const router = useRouter();
-  const supabase = createClient();
   const queryClient = useQueryClient();
 
   const [body, setBody] = useState('');
