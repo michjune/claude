@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import type { Content } from '@/lib/supabase/types';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, ArrowLeft, Clock } from 'lucide-react';
@@ -40,7 +41,7 @@ function getWordCount(text: string): number {
 }
 
 export async function generateStaticParams() {
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminClient();
   const { data: posts } = await supabase
     .from('content')
     .select('slug')
