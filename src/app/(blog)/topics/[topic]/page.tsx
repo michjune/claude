@@ -6,6 +6,9 @@ import { Calendar, ArrowLeft, Tag } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import type { Metadata } from 'next';
+import { BreadcrumbJsonLd, CollectionPageJsonLd } from '@/components/seo/JsonLd';
+
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://stemcellpulse.com';
 
 interface TopicPageProps {
   params: Promise<{ topic: string }>;
@@ -19,9 +22,20 @@ export async function generateMetadata({ params }: TopicPageProps): Promise<Meta
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ');
 
+  const topicUrl = `${BASE_URL}/topics/${topicParam}`;
+
   return {
     title: `${capitalized} - StemCell Pulse`,
     description: `Articles about ${topic} in stem cell research and regenerative medicine.`,
+    openGraph: {
+      title: `${capitalized} - StemCell Pulse`,
+      description: `Articles about ${topic} in stem cell research and regenerative medicine.`,
+      type: 'website',
+      url: topicUrl,
+    },
+    alternates: {
+      canonical: topicUrl,
+    },
   };
 }
 
@@ -66,8 +80,23 @@ export default async function TopicPage({ params }: TopicPageProps) {
     return true;
   });
 
+  const topicUrl = `${BASE_URL}/topics/${topicParam}`;
+
   return (
     <div className="container py-10">
+      <BreadcrumbJsonLd
+        items={[
+          { name: 'Home', url: BASE_URL },
+          { name: 'Blog', url: `${BASE_URL}/posts` },
+          { name: capitalized, url: topicUrl },
+        ]}
+      />
+      <CollectionPageJsonLd
+        name={`${capitalized} - StemCell Pulse`}
+        description={`Articles about ${topic} in stem cell research and regenerative medicine.`}
+        url={topicUrl}
+      />
+
       <Link
         href="/posts"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"

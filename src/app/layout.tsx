@@ -4,8 +4,11 @@ import './globals.css';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { QueryProvider } from '@/providers/QueryProvider';
+import { OrganizationJsonLd } from '@/components/seo/JsonLd';
 
 const inter = Inter({ subsets: ['latin'] });
+
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://stemcellpulse.com';
 
 export const metadata: Metadata = {
   title: {
@@ -14,7 +17,21 @@ export const metadata: Metadata = {
   },
   description:
     'Stay updated with the latest stem cell research from high-impact journals. AI-powered summaries, blog posts, and social media content.',
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
+  metadataBase: new URL(BASE_URL),
+  alternates: {
+    types: {
+      'application/rss+xml': '/feed.xml',
+    },
+  },
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION || undefined,
+  },
+  other: {
+    'theme-color': '#6366f1',
+    'color-scheme': 'light dark',
+    'geo.region': 'US',
+    'geo.placename': 'United States',
+  },
 };
 
 export default function RootLayout({
@@ -25,6 +42,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
+        <OrganizationJsonLd />
         <ThemeProvider>
           <QueryProvider>
             <AuthProvider>

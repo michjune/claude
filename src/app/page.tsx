@@ -2,6 +2,32 @@ import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { WebSiteJsonLd } from '@/components/seo/JsonLd';
+import type { Metadata } from 'next';
+
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://stemcellpulse.com';
+
+export const metadata: Metadata = {
+  title: 'StemCell Pulse - AI-Powered Stem Cell Research Summaries',
+  description:
+    'Stay updated with the latest stem cell research from Nature, Cell, Science, and other high-impact journals. AI-powered summaries, blog posts, and insights updated daily.',
+  openGraph: {
+    title: 'StemCell Pulse - AI-Powered Stem Cell Research Summaries',
+    description:
+      'Stay updated with the latest stem cell research from high-impact journals. AI-powered summaries updated daily.',
+    type: 'website',
+    url: BASE_URL,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'StemCell Pulse - AI-Powered Stem Cell Research',
+    description:
+      'AI-powered summaries of the latest stem cell research from high-impact journals.',
+  },
+  alternates: {
+    canonical: BASE_URL,
+  },
+};
 
 export default async function HomePage() {
   const supabase = await createServerSupabaseClient();
@@ -16,6 +42,7 @@ export default async function HomePage() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <WebSiteJsonLd />
       <Header />
       <main className="flex-1">
         {/* Hero */}

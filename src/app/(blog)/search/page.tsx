@@ -9,12 +9,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Search as SearchIcon, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { useTrackEvent } from '@/hooks/useTrackEvent';
 
 export default function SearchPage() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Content[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const { trackEvent } = useTrackEvent();
 
   const supabase = createClient();
 
@@ -41,6 +43,8 @@ export default function SearchPage() {
           .order('published_at', { ascending: false })
           .limit(20);
 
+        let finalResults: Content[];
+
         if (error) {
           // Fallback: search with ilike on title and body
           const { data: fallbackData } = await supabase
@@ -52,17 +56,25 @@ export default function SearchPage() {
             .order('published_at', { ascending: false })
             .limit(20);
 
-          setResults((fallbackData || []) as Content[]);
+          finalResults = (fallbackData || []) as Content[];
         } else {
-          setResults((data || []) as Content[]);
+          finalResults = (data || []) as Content[];
         }
+
+        setResults(finalResults);
+
+        // Track the site search for analytics
+        trackEvent('site_search', {
+          query: trimmed,
+          results_count: finalResults.length,
+        });
       } catch {
         setResults([]);
       } finally {
         setIsLoading(false);
       }
     },
-    [supabase]
+    [supabase, trackEvent]
   );
 
   const handleSubmit = (e: React.FormEvent) => {

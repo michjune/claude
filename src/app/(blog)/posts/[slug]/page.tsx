@@ -1,13 +1,16 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import type { Content } from '@/lib/supabase/types';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, ArrowLeft } from 'lucide-react';
+import { Calendar, ArrowLeft, Clock } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { PostAnalytics } from '@/components/blog/PostAnalytics';
+import { ArticleJsonLd, BreadcrumbJsonLd } from '@/components/seo/JsonLd';
+
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://stemcellpulse.com';
 
 export const revalidate = 3600;
 
@@ -27,20 +30,53 @@ async function getPost(slug: string): Promise<Content | null> {
   return data as Content | null;
 }
 
+function getReadingTime(text: string): number {
+  const words = text.trim().split(/\s+/).length;
+  return Math.max(1, Math.ceil(words / 200));
+}
+
+function getWordCount(text: string): number {
+  return text.trim().split(/\s+/).length;
+}
+
+export async function generateStaticParams() {
+  const supabase = await createServerSupabaseClient();
+  const { data: posts } = await supabase
+    .from('content')
+    .select('slug')
+    .eq('content_type', 'blog_post')
+    .eq('status', 'published');
+
+  return (posts || []).map((post) => ({ slug: post.slug }));
+}
+
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
   const { slug } = await params;
   const post = await getPost(slug);
   if (!post) return { title: 'Post Not Found' };
 
+  const keywords = (post.metadata?.keywords as string[]) || [];
+  const postUrl = `${BASE_URL}/posts/${slug}`;
+
   return {
     title: post.seo_title || post.title || 'StemCell Pulse',
     description: post.seo_description || post.summary || undefined,
+    keywords: keywords.length > 0 ? keywords : undefined,
+    authors: [{ name: 'StemCell Pulse', url: BASE_URL }],
+    alternates: {
+      canonical: postUrl,
+    },
     openGraph: {
       title: post.seo_title || post.title || 'StemCell Pulse',
       description: post.seo_description || post.summary || undefined,
       type: 'article',
       publishedTime: post.published_at || undefined,
+      modifiedTime: post.updated_at || undefined,
+      authors: ['StemCell Pulse'],
+      section: (post.metadata?.article_section as string) || 'Stem Cell Research',
+      tags: keywords,
       images: post.og_image_url ? [post.og_image_url] : undefined,
+      url: postUrl,
     },
     twitter: {
       card: 'summary_large_image',
@@ -203,9 +239,31 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   if (!post) notFound();
 
   const keywords = (post.metadata?.keywords as string[]) || [];
+  const readingTime = getReadingTime(post.body);
+  const wordCount = getWordCount(post.body);
+  const postUrl = `${BASE_URL}/posts/${slug}`;
 
   return (
     <article className="container max-w-3xl py-10">
+      <ArticleJsonLd
+        title={post.title || ''}
+        description={post.seo_description || post.summary || ''}
+        url={postUrl}
+        imageUrl={post.og_image_url || undefined}
+        datePublished={post.published_at || post.created_at}
+        dateModified={post.updated_at || undefined}
+        keywords={keywords}
+        wordCount={wordCount}
+        articleSection={(post.metadata?.article_section as string) || 'Stem Cell Research'}
+      />
+      <BreadcrumbJsonLd
+        items={[
+          { name: 'Home', url: BASE_URL },
+          { name: 'Blog', url: `${BASE_URL}/posts` },
+          { name: post.title || '', url: postUrl },
+        ]}
+      />
+
       <Link
         href="/posts"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
@@ -265,6 +323,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             {post.published_at
               ? format(new Date(post.published_at), 'MMMM d, yyyy')
               : format(new Date(post.created_at), 'MMMM d, yyyy')}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Clock className="h-4 w-4" />
+            {readingTime} min read
           </div>
         </div>
 

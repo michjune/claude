@@ -17,7 +17,7 @@ import {
   BarChart,
   Bar,
 } from 'recharts';
-import { Eye, Users, Clock, Globe, FlaskConical } from 'lucide-react';
+import { Eye, Users, Clock, Globe, FlaskConical, Search } from 'lucide-react';
 
 const PERIODS = [
   { label: '7 days', value: '7d' },
@@ -60,6 +60,19 @@ export default function AnalyticsPage() {
     campaign,
     views: views as number,
   })).sort((a, b) => b.views - a.views);
+
+  const searchReferrerTerms = (data?.searchReferrerTerms || []) as Array<{
+    query: string;
+    count: number;
+    engine: string;
+    top_landing_page: string;
+  }>;
+
+  const siteSearchTerms = (data?.siteSearchTerms || []) as Array<{
+    query: string;
+    count: number;
+    avg_results: number;
+  }>;
 
   return (
     <div className="space-y-8">
@@ -193,6 +206,90 @@ export default function AnalyticsPage() {
             )}
           </div>
 
+          {/* Search Terms row */}
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Search Engine Terms */}
+            <div className="rounded-lg border bg-card p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Search className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-semibold">Search Engine Terms</h2>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                Terms people searched on Bing, DuckDuckGo, Yahoo, etc. that led them to your pages.
+                Google encrypts most queries — connect Google Search Console for full Google data.
+              </p>
+              {searchReferrerTerms.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-muted-foreground">
+                        <th className="text-left py-2 pr-4 font-medium">Search Term</th>
+                        <th className="text-right py-2 px-2 font-medium">Clicks</th>
+                        <th className="text-left py-2 px-2 font-medium">Engine</th>
+                        <th className="text-left py-2 pl-2 font-medium">Landing Page</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {searchReferrerTerms.map((term) => (
+                        <tr key={term.query} className="border-b last:border-0">
+                          <td className="py-2 pr-4 font-medium">{term.query}</td>
+                          <td className="text-right py-2 px-2">{term.count}</td>
+                          <td className="py-2 px-2 capitalize text-muted-foreground">{term.engine}</td>
+                          <td className="py-2 pl-2">
+                            <Link href={term.top_landing_page} className="text-primary hover:underline text-xs">
+                              {term.top_landing_page}
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <EmptyState message="No search engine referral data yet. As visitors arrive from Bing, DuckDuckGo, and other search engines, their search terms will appear here." />
+              )}
+            </div>
+
+            {/* Site Search Terms */}
+            <div className="rounded-lg border bg-card p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Search className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-semibold">On-Site Search Terms</h2>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                What visitors are searching for on your site. Low-result queries may indicate content gaps.
+              </p>
+              {siteSearchTerms.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-muted-foreground">
+                        <th className="text-left py-2 pr-4 font-medium">Search Term</th>
+                        <th className="text-right py-2 px-2 font-medium">Searches</th>
+                        <th className="text-right py-2 pl-2 font-medium">Avg Results</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {siteSearchTerms.map((term) => (
+                        <tr key={term.query} className="border-b last:border-0">
+                          <td className="py-2 pr-4 font-medium">{term.query}</td>
+                          <td className="text-right py-2 px-2">{term.count}</td>
+                          <td className="text-right py-2 pl-2">
+                            <span className={term.avg_results === 0 ? 'text-red-500 font-medium' : ''}>
+                              {term.avg_results}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <EmptyState message="No site search data yet. When visitors use the search page, their queries will appear here." />
+              )}
+            </div>
+          </div>
+
           {/* Charts row */}
           <div className="grid gap-6 md:grid-cols-2">
             {/* Traffic Sources */}
@@ -294,7 +391,7 @@ function StatCard({ title, value, icon }: { title: string; value: string; icon: 
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
+    <div className="flex items-center justify-center h-48 text-muted-foreground text-sm text-center px-4">
       {message}
     </div>
   );

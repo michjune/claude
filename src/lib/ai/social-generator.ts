@@ -6,6 +6,15 @@ import { factCheckContent, buildResearchSummary } from './research-pipeline';
 import type { ResearchContext } from './research-pipeline';
 import type { Paper } from '@/lib/supabase/types';
 
+interface PlatformHashtags {
+  twitter: string[];
+  linkedin: string[];
+  instagram: string[];
+  facebook: string[];
+  tiktok: string[];
+  youtube: string[];
+}
+
 interface SocialOutput {
   tweet: string;
   linkedin_post: string;
@@ -13,6 +22,7 @@ interface SocialOutput {
   facebook_post: string;
   tiktok_caption: string;
   youtube_description: string;
+  hashtags?: PlatformHashtags;
 }
 
 /**
@@ -90,7 +100,8 @@ Respond with valid JSON matching the exact same format:
   "instagram_caption": string (max 2200 chars),
   "facebook_post": string (max 500 chars),
   "tiktok_caption": string (max 150 chars),
-  "youtube_description": string (max 500 chars)
+  "youtube_description": string (max 500 chars),
+  "hashtags": { "twitter": string[], "linkedin": string[], "instagram": string[], "facebook": string[], "tiktok": string[], "youtube": string[] }
 }`;
 
   const userPrompt = `Revise these social media posts about "${paper.title}" to fix accuracy issues while keeping them engaging.

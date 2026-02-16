@@ -36,8 +36,12 @@ export async function GET(request: Request) {
     ? new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     : '2000-01-01';
 
+  const dateFilterISO = days
+    ? new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
+    : '2000-01-01T00:00:00.000Z';
+
   // Fetch daily site stats
-  let siteStatsQuery = admin
+  const siteStatsQuery = admin
     .from('daily_site_stats')
     .select('*')
     .gte('date', dateFilter)
@@ -46,12 +50,19 @@ export async function GET(request: Request) {
   const { data: siteStats } = await siteStatsQuery;
 
   // Fetch top content
-  let contentStatsQuery = admin
+  const contentStatsQuery = admin
     .from('daily_content_stats')
     .select('*')
     .gte('date', dateFilter);
 
   const { data: contentStats } = await contentStatsQuery;
+
+  // Fetch search term events (both search_referrer and site_search)
+  const { data: searchEvents } = await admin
+    .from('analytics_events')
+    .select('event_type, event_data, content_id')
+    .in('event_type', ['search_referrer', 'site_search'])
+    .gte('created_at', dateFilterISO);
 
   // Aggregate content stats
   const contentAgg: Record<string, {
@@ -155,6 +166,52 @@ export async function GET(request: Request) {
     }
   }
 
+  // Aggregate search terms
+  const searchReferrerCounts: Record<string, { count: number; engine: string; landing_pages: Record<string, number> }> = {};
+  const siteSearchCounts: Record<string, { count: number; total_results: number }> = {};
+
+  for (const ev of searchEvents || []) {
+    const data = ev.event_data as Record<string, unknown>;
+    const query = (data?.query as string || '').toLowerCase().trim();
+    if (!query) continue;
+
+    if (ev.event_type === 'search_referrer') {
+      if (!searchReferrerCounts[query]) {
+        searchReferrerCounts[query] = { count: 0, engine: (data?.engine as string) || 'unknown', landing_pages: {} };
+      }
+      searchReferrerCounts[query].count++;
+      const landingPath = (data?.landing_path as string) || '/';
+      searchReferrerCounts[query].landing_pages[landingPath] =
+        (searchReferrerCounts[query].landing_pages[landingPath] || 0) + 1;
+    } else if (ev.event_type === 'site_search') {
+      if (!siteSearchCounts[query]) {
+        siteSearchCounts[query] = { count: 0, total_results: 0 };
+      }
+      siteSearchCounts[query].count++;
+      siteSearchCounts[query].total_results += (data?.results_count as number) || 0;
+    }
+  }
+
+  const searchReferrerTerms = Object.entries(searchReferrerCounts)
+    .map(([query, info]) => ({
+      query,
+      count: info.count,
+      engine: info.engine,
+      top_landing_page: Object.entries(info.landing_pages)
+        .sort((a, b) => b[1] - a[1])[0]?.[0] || '/',
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 20);
+
+  const siteSearchTerms = Object.entries(siteSearchCounts)
+    .map(([query, info]) => ({
+      query,
+      count: info.count,
+      avg_results: info.count > 0 ? Math.round(info.total_results / info.count) : 0,
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 20);
+
   return NextResponse.json({
     totals,
     dailyStats: siteStats || [],
@@ -162,5 +219,7 @@ export async function GET(request: Request) {
     topReferrers,
     deviceBreakdown: deviceTotals,
     utmBreakdown: utmTotals,
+    searchReferrerTerms,
+    siteSearchTerms,
   });
 }

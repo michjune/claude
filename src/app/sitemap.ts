@@ -8,7 +8,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const { data: posts } = await supabase
     .from('content')
-    .select('slug, published_at, updated_at')
+    .select('slug, published_at, updated_at, metadata')
     .eq('content_type', 'blog_post')
     .eq('status', 'published')
     .order('published_at', { ascending: false });
@@ -41,5 +41,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  return [...staticRoutes, ...postRoutes];
+  // Extract unique topics from post keywords for topic pages
+  const topicSet = new Set<string>();
+  for (const post of posts || []) {
+    const keywords = (post.metadata as Record<string, unknown>)?.keywords;
+    if (Array.isArray(keywords)) {
+      for (const keyword of keywords) {
+        if (typeof keyword === 'string') {
+          topicSet.add(keyword.toLowerCase());
+        }
+      }
+    }
+  }
+
+  const topicRoutes: MetadataRoute.Sitemap = Array.from(topicSet).map((topic) => ({
+    url: `${BASE_URL}/topics/${encodeURIComponent(topic)}`,
+    lastModified: new Date(),
+    changeFrequency: 'weekly' as const,
+    priority: 0.7,
+  }));
+
+  return [...staticRoutes, ...postRoutes, ...topicRoutes];
 }

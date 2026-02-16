@@ -6,16 +6,28 @@ import { Calendar } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import type { Metadata } from 'next';
+import { CollectionPageJsonLd } from '@/components/seo/JsonLd';
 
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://stemcellpulse.com';
 const POSTS_PER_PAGE = 12;
 
 interface PostsPageProps {
   searchParams: Promise<{ page?: string }>;
 }
 
-export const metadata = {
-  title: 'Blog - StemCell Pulse',
+export const metadata: Metadata = {
+  title: 'Blog',
   description: 'Latest articles on stem cell research, regenerative medicine, and related breakthroughs.',
+  openGraph: {
+    title: 'Blog - StemCell Pulse',
+    description: 'Latest articles on stem cell research, regenerative medicine, and related breakthroughs.',
+    type: 'website',
+    url: `${BASE_URL}/posts`,
+  },
+  alternates: {
+    canonical: `${BASE_URL}/posts`,
+  },
 };
 
 export default async function PostsPage({ searchParams }: PostsPageProps) {
@@ -38,6 +50,12 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
 
   return (
     <div className="container py-10">
+      <CollectionPageJsonLd
+        name="Blog - StemCell Pulse"
+        description="Latest articles on stem cell research, regenerative medicine, and related breakthroughs."
+        url={`${BASE_URL}/posts`}
+      />
+
       <div className="mb-8">
         <h1 className="text-4xl font-bold tracking-tight">Blog</h1>
         <p className="mt-2 text-lg text-muted-foreground">

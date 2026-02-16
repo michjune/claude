@@ -18,17 +18,26 @@ Always respond with valid JSON matching the requested format.`,
 - A balanced conclusion noting limitations
 - SEO-optimized title, description, and summary
 
-Respond with JSON: { "title": string, "slug": string, "body": string (markdown), "summary": string (2-3 sentences), "seo_title": string (max 60 chars), "seo_description": string (max 160 chars), "keywords": string[] }`,
+Respond with JSON: { "title": string, "slug": string, "body": string (markdown), "summary": string (2-3 sentences), "seo_title": string (max 60 chars), "seo_description": string (max 160 chars), "keywords": string[], "reading_time_minutes": number (estimated minutes to read), "article_section": string (e.g. "Stem Cell Research", "Regenerative Medicine", "Gene Therapy", "Clinical Trials") }`,
 
   socialMedia: `You create social media content about stem cell research papers. Generate platform-optimized content for all platforms in a single response.
 
+Hashtag strategy:
+- Twitter: 2-3 niche hashtags + 1-2 broad hashtags within the tweet
+- LinkedIn: 3-5 professional hashtags at the end of the post
+- Instagram: structured hashtag block at end with up to 30 hashtags (mix of niche stem cell hashtags, broad science hashtags, and trending health hashtags)
+- Facebook: 2-3 hashtags naturally integrated
+- TikTok: 3-5 trending/discoverable hashtags
+- YouTube: SEO-optimized title keywords and tags in description
+
 Respond with JSON: {
   "tweet": string (max 280 chars, engaging, include relevant hashtags),
-  "linkedin_post": string (max 3000 chars, professional tone, detailed),
-  "instagram_caption": string (max 2200 chars, accessible, emoji-friendly, hashtag block at end),
+  "linkedin_post": string (max 3000 chars, professional tone, detailed, hashtags at end),
+  "instagram_caption": string (max 2200 chars, accessible, emoji-friendly, structured hashtag block at end),
   "facebook_post": string (max 500 chars, conversational, shareable),
-  "tiktok_caption": string (max 150 chars, trendy, hook-driven),
-  "youtube_description": string (max 500 chars, informative with timestamps placeholder)
+  "tiktok_caption": string (max 150 chars, trendy, hook-driven, hashtags),
+  "youtube_description": string (max 500 chars, informative with timestamps placeholder, SEO tags),
+  "hashtags": { "twitter": string[], "linkedin": string[], "instagram": string[], "facebook": string[], "tiktok": string[], "youtube": string[] }
 }`,
 
   videoScript: `You create 60-second narration scripts for short-form video about stem cell research. The script should:
@@ -59,7 +68,7 @@ ${paper.journal_name ? `Journal: ${paper.journal_name}` : ''}
 ${paper.published_date ? `Published: ${paper.published_date}` : ''}
 ${paper.keywords.length > 0 ? `Keywords: ${paper.keywords.join(', ')}` : ''}
 
-Create a comprehensive, engaging blog post about this research.`;
+Create a comprehensive, engaging blog post about this research. Include "reading_time_minutes" (estimated) and "article_section" (the primary topic category like "Stem Cell Research", "Regenerative Medicine", "Gene Therapy", etc.) in your response.`;
 }
 
 export function buildSocialPrompt(paper: {
@@ -73,7 +82,7 @@ Title: ${paper.title}
 ${paper.abstract ? `Abstract: ${paper.abstract}` : ''}
 ${paper.journal_name ? `Journal: ${paper.journal_name}` : ''}
 
-Generate optimized content for each platform.`;
+Generate optimized content for each platform. Include a "hashtags" object with platform-specific hashtag arrays.`;
 }
 
 export function buildVideoScriptPrompt(paper: {
