@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   const contentId = searchParams.get('contentId');
   if (!contentId) return NextResponse.json({ error: 'contentId required' }, { status: 400 });
 
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
 
   const { data, error } = await supabase
     .from('comments')
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

@@ -11,11 +11,11 @@ import type { Metadata } from 'next';
 export const revalidate = 3600;
 
 interface BlogPostPageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 async function getPost(slug: string): Promise<Content | null> {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const { data } = await supabase
     .from('content')
     .select('*')
@@ -27,7 +27,8 @@ async function getPost(slug: string): Promise<Content | null> {
 }
 
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
-  const post = await getPost(params.slug);
+  const { slug } = await params;
+  const post = await getPost(slug);
   if (!post) return { title: 'Post Not Found' };
 
   return {
@@ -196,7 +197,8 @@ function renderMarkdown(markdown: string): React.ReactNode[] {
 }
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
-  const post = await getPost(params.slug);
+  const { slug } = await params;
+  const post = await getPost(slug);
   if (!post) notFound();
 
   const keywords = (post.metadata?.keywords as string[]) || [];

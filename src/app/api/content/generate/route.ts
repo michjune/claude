@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { runResearchPipeline } from '@/lib/ai/research-pipeline';
 import { generateBlogPost } from '@/lib/ai/blog-generator';
 import { generateSocialContent } from '@/lib/ai/social-generator';
 import { generateVideoScript } from '@/lib/ai/script-generator';
@@ -8,7 +9,7 @@ import { generateBlogImage } from '@/lib/ai/image-generator';
 import type { Paper, ContentType } from '@/lib/supabase/types';
 
 export async function POST(request: Request) {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -29,11 +30,20 @@ export async function POST(request: Request) {
   }
 
   try {
-    // Generate all content in parallel
-    const [blog, social, videoScript] = await Promise.all([
-      generateBlogPost(paper as Paper),
-      generateSocialContent(paper as Paper),
-      generateVideoScript(paper as Paper),
+    // Step 0: Run research pipeline (shared across all generators)
+    console.log('[generate] Running research pipeline...');
+    const research = await runResearchPipeline(paper as Paper);
+    console.log(`[generate] Found ${research.literature.references.length} cross-references`);
+
+    // Generate all content with shared research context
+    // Blog runs first (most complex), social + video can run in parallel after
+    console.log('[generate] Generating blog post...');
+    const blog = await generateBlogPost(paper as Paper, research);
+
+    console.log('[generate] Generating social + video in parallel...');
+    const [social, videoScript] = await Promise.all([
+      generateSocialContent(paper as Paper, research),
+      generateVideoScript(paper as Paper, research),
     ]);
 
     // Generate blog featured image
@@ -83,7 +93,11 @@ export async function POST(request: Request) {
         seo_description: blog.seo_description,
         og_image_url: blogImageUrl,
         created_by: user.id,
-        metadata: { keywords: blog.keywords, ...imageMetadata },
+        metadata: {
+          keywords: blog.keywords,
+          ...imageMetadata,
+          research_refs: research.literature.references.length,
+        },
       },
       {
         paper_id: paperId,
@@ -96,7 +110,7 @@ export async function POST(request: Request) {
         seo_title: null,
         seo_description: null,
         created_by: user.id,
-        metadata: {},
+        metadata: { fact_checked: true },
       },
       {
         paper_id: paperId,
@@ -109,7 +123,7 @@ export async function POST(request: Request) {
         seo_title: null,
         seo_description: null,
         created_by: user.id,
-        metadata: {},
+        metadata: { fact_checked: true },
       },
       {
         paper_id: paperId,
@@ -122,7 +136,7 @@ export async function POST(request: Request) {
         seo_title: null,
         seo_description: null,
         created_by: user.id,
-        metadata: {},
+        metadata: { fact_checked: true },
       },
       {
         paper_id: paperId,
@@ -135,7 +149,7 @@ export async function POST(request: Request) {
         seo_title: null,
         seo_description: null,
         created_by: user.id,
-        metadata: {},
+        metadata: { fact_checked: true },
       },
       {
         paper_id: paperId,
@@ -148,7 +162,7 @@ export async function POST(request: Request) {
         seo_title: null,
         seo_description: null,
         created_by: user.id,
-        metadata: {},
+        metadata: { fact_checked: true },
       },
       {
         paper_id: paperId,
@@ -161,7 +175,7 @@ export async function POST(request: Request) {
         seo_title: null,
         seo_description: null,
         created_by: user.id,
-        metadata: {},
+        metadata: { fact_checked: true },
       },
       {
         paper_id: paperId,
@@ -174,7 +188,7 @@ export async function POST(request: Request) {
         seo_title: null,
         seo_description: null,
         created_by: user.id,
-        metadata: { visual_cues: videoScript.visual_cues },
+        metadata: { visual_cues: videoScript.visual_cues, fact_checked: true },
       },
     ];
 
@@ -189,7 +203,10 @@ export async function POST(request: Request) {
       action: 'generate_content',
       entity_type: 'paper',
       entity_id: paperId,
-      details: { content_types: contentItems.map((c) => c.content_type) },
+      details: {
+        content_types: contentItems.map((c) => c.content_type),
+        research_refs: research.literature.references.length,
+      },
     });
 
     return NextResponse.json({ success: true, count: contentItems.length });

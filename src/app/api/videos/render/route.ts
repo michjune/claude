@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { renderVideoForRecord } from '@/lib/video/renderer';
 
 export async function POST(request: Request) {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

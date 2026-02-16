@@ -4,7 +4,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://stemcellpulse.com';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
 
   const { data: posts } = await supabase
     .from('content')

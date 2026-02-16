@@ -12,13 +12,14 @@ export const contentType = 'image/png';
 
 export const alt = 'StemCell Pulse blog post';
 
-export default async function OGImage({ params }: { params: { slug: string } }) {
+export default async function OGImage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
   // Try to redirect to stored OG image
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const { data: post } = await supabase
     .from('content')
     .select('og_image_url, title')
-    .eq('slug', params.slug)
+    .eq('slug', slug)
     .eq('content_type', 'blog_post')
     .single();
 
@@ -38,7 +39,7 @@ export default async function OGImage({ params }: { params: { slug: string } }) 
   }
 
   // Fallback: generate on-the-fly
-  const title = post?.title || params.slug
+  const title = post?.title || slug
     .replace(/-/g, ' ')
     .replace(/\b\w/g, (c) => c.toUpperCase());
 

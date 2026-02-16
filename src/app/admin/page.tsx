@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, Layers, Share2, Video } from 'lucide-react';
 
 export default async function AdminDashboard() {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
 
   const [papersRes, contentRes, socialRes, videosRes, cronRes] = await Promise.all([
     supabase.from('papers').select('id', { count: 'exact', head: true }),

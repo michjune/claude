@@ -8,11 +8,12 @@ import { format } from 'date-fns';
 import type { Metadata } from 'next';
 
 interface TopicPageProps {
-  params: { topic: string };
+  params: Promise<{ topic: string }>;
 }
 
 export async function generateMetadata({ params }: TopicPageProps): Promise<Metadata> {
-  const topic = decodeURIComponent(params.topic).replace(/-/g, ' ');
+  const { topic: topicParam } = await params;
+  const topic = decodeURIComponent(topicParam).replace(/-/g, ' ');
   const capitalized = topic
     .split(' ')
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
@@ -25,13 +26,14 @@ export async function generateMetadata({ params }: TopicPageProps): Promise<Meta
 }
 
 export default async function TopicPage({ params }: TopicPageProps) {
-  const topic = decodeURIComponent(params.topic).replace(/-/g, ' ');
+  const { topic: topicParam } = await params;
+  const topic = decodeURIComponent(topicParam).replace(/-/g, ' ');
   const capitalized = topic
     .split(' ')
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ');
 
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
 
   // Fetch blog posts where metadata keywords contain the topic, or body mentions it
   const { data: posts } = await supabase

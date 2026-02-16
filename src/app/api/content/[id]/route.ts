@@ -4,13 +4,14 @@ import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function GET(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const admin = createAdminClient();
   const { data, error } = await admin
     .from('content')
     .select('*, papers(*)')
-    .eq('id', params.id)
+    .eq('id', id)
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 404 });
@@ -19,9 +20,10 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = createServerSupabaseClient();
+  const { id } = await params;
+  const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -31,7 +33,7 @@ export async function PATCH(
   const { data, error } = await admin
     .from('content')
     .update(updates)
-    .eq('id', params.id)
+    .eq('id', id)
     .select()
     .single();
 
@@ -41,7 +43,7 @@ export async function PATCH(
     user_id: user.id,
     action: 'update_content',
     entity_type: 'content',
-    entity_id: params.id,
+    entity_id: id,
     details: { fields: Object.keys(updates) },
   });
 
@@ -50,9 +52,10 @@ export async function PATCH(
 
 export async function DELETE(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = createServerSupabaseClient();
+  const { id } = await params;
+  const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -60,7 +63,7 @@ export async function DELETE(
   const { error } = await admin
     .from('content')
     .update({ status: 'archived' })
-    .eq('id', params.id);
+    .eq('id', id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });

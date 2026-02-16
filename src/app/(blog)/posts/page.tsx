@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 const POSTS_PER_PAGE = 12;
 
 interface PostsPageProps {
-  searchParams: { page?: string };
+  searchParams: Promise<{ page?: string }>;
 }
 
 export const metadata = {
@@ -19,10 +19,11 @@ export const metadata = {
 };
 
 export default async function PostsPage({ searchParams }: PostsPageProps) {
-  const page = Math.max(1, parseInt(searchParams.page || '1', 10));
+  const resolvedSearchParams = await searchParams;
+  const page = Math.max(1, parseInt(resolvedSearchParams.page || '1', 10));
   const offset = (page - 1) * POSTS_PER_PAGE;
 
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
 
   const { data: posts, count } = await supabase
     .from('content')

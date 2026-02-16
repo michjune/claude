@@ -13,7 +13,7 @@ import { CheckCircle, XCircle, ChevronDown, ChevronUp, Clock, FileText } from 'l
 import Link from 'next/link';
 import { format } from 'date-fns';
 
-type ContentWithPaper = Content & { papers: Pick<Paper, 'title'> | null };
+type ContentWithPaper = Content & { papers?: Pick<Paper, 'title'> | null };
 
 const CONTENT_TYPES: { label: string; value: string }[] = [
   { label: 'All', value: 'all' },
@@ -72,22 +72,12 @@ export default function AdminContentQueuePage() {
   const { data: contentItems, isLoading, error } = useQuery({
     queryKey: ['admin-content', typeFilter, statusFilter],
     queryFn: async () => {
-      let query = supabase
-        .from('content')
-        .select('*, papers(title)')
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (typeFilter !== 'all') {
-        query = query.eq('content_type', typeFilter);
-      }
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as ContentWithPaper[];
+      const params = new URLSearchParams();
+      if (typeFilter !== 'all') params.set('type', typeFilter);
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+      const res = await fetch(`/api/content?${params.toString()}`);
+      if (!res.ok) throw new Error('Failed to load content');
+      return res.json() as Promise<ContentWithPaper[]>;
     },
   });
 

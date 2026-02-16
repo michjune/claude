@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   const redirect = searchParams.get('redirect') || '/';
 
   if (code) {
-    const supabase = createServerSupabaseClient();
+    const supabase = await createServerSupabaseClient();
     await supabase.auth.exchangeCodeForSession(code);
   }
 

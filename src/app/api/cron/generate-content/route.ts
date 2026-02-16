@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { runResearchPipeline } from '@/lib/ai/research-pipeline';
 import { generateBlogPost } from '@/lib/ai/blog-generator';
 import { generateSocialContent } from '@/lib/ai/social-generator';
 import { generateVideoScript } from '@/lib/ai/script-generator';
@@ -41,10 +42,17 @@ export async function GET(request: Request) {
 
     for (const paper of papers) {
       try {
-        const [blog, social, videoScript] = await Promise.all([
-          generateBlogPost(paper as Paper),
-          generateSocialContent(paper as Paper),
-          generateVideoScript(paper as Paper),
+        // Run research pipeline first (shared across all generators)
+        console.log(`[cron] Running research pipeline for paper ${paper.id}...`);
+        const research = await runResearchPipeline(paper as Paper);
+        console.log(`[cron] Found ${research.literature.references.length} cross-references`);
+
+        // Blog runs first, then social + video in parallel
+        const blog = await generateBlogPost(paper as Paper, research);
+
+        const [social, videoScript] = await Promise.all([
+          generateSocialContent(paper as Paper, research),
+          generateVideoScript(paper as Paper, research),
         ]);
 
         // Generate blog featured image
@@ -73,14 +81,14 @@ export async function GET(request: Request) {
           og_image_url?: string | null;
           metadata: Record<string, unknown>;
         }> = [
-          { paper_id: paper.id, content_type: 'blog_post', title: blog.title, slug: blog.slug, body: blog.body, summary: blog.summary, status: 'pending_review', seo_title: blog.seo_title, seo_description: blog.seo_description, og_image_url: blogImageUrl, metadata: { keywords: blog.keywords, ...imgMeta } },
-          { paper_id: paper.id, content_type: 'tweet', title: null, slug: null, body: social.tweet, summary: null, status: 'pending_review', seo_title: null, seo_description: null, metadata: {} },
-          { paper_id: paper.id, content_type: 'linkedin_post', title: null, slug: null, body: social.linkedin_post, summary: null, status: 'pending_review', seo_title: null, seo_description: null, metadata: {} },
-          { paper_id: paper.id, content_type: 'instagram_caption', title: null, slug: null, body: social.instagram_caption, summary: null, status: 'pending_review', seo_title: null, seo_description: null, metadata: {} },
-          { paper_id: paper.id, content_type: 'facebook_post', title: null, slug: null, body: social.facebook_post, summary: null, status: 'pending_review', seo_title: null, seo_description: null, metadata: {} },
-          { paper_id: paper.id, content_type: 'tiktok_caption', title: null, slug: null, body: social.tiktok_caption, summary: null, status: 'pending_review', seo_title: null, seo_description: null, metadata: {} },
-          { paper_id: paper.id, content_type: 'youtube_description', title: null, slug: null, body: social.youtube_description, summary: null, status: 'pending_review', seo_title: null, seo_description: null, metadata: {} },
-          { paper_id: paper.id, content_type: 'video_script', title: null, slug: null, body: videoScript.script, summary: videoScript.hook, status: 'pending_review', seo_title: null, seo_description: null, metadata: { visual_cues: videoScript.visual_cues } },
+          { paper_id: paper.id, content_type: 'blog_post', title: blog.title, slug: blog.slug, body: blog.body, summary: blog.summary, status: 'pending_review', seo_title: blog.seo_title, seo_description: blog.seo_description, og_image_url: blogImageUrl, metadata: { keywords: blog.keywords, ...imgMeta, research_refs: research.literature.references.length } },
+          { paper_id: paper.id, content_type: 'tweet', title: null, slug: null, body: social.tweet, summary: null, status: 'pending_review', seo_title: null, seo_description: null, metadata: { fact_checked: true } },
+          { paper_id: paper.id, content_type: 'linkedin_post', title: null, slug: null, body: social.linkedin_post, summary: null, status: 'pending_review', seo_title: null, seo_description: null, metadata: { fact_checked: true } },
+          { paper_id: paper.id, content_type: 'instagram_caption', title: null, slug: null, body: social.instagram_caption, summary: null, status: 'pending_review', seo_title: null, seo_description: null, metadata: { fact_checked: true } },
+          { paper_id: paper.id, content_type: 'facebook_post', title: null, slug: null, body: social.facebook_post, summary: null, status: 'pending_review', seo_title: null, seo_description: null, metadata: { fact_checked: true } },
+          { paper_id: paper.id, content_type: 'tiktok_caption', title: null, slug: null, body: social.tiktok_caption, summary: null, status: 'pending_review', seo_title: null, seo_description: null, metadata: { fact_checked: true } },
+          { paper_id: paper.id, content_type: 'youtube_description', title: null, slug: null, body: social.youtube_description, summary: null, status: 'pending_review', seo_title: null, seo_description: null, metadata: { fact_checked: true } },
+          { paper_id: paper.id, content_type: 'video_script', title: null, slug: null, body: videoScript.script, summary: videoScript.hook, status: 'pending_review', seo_title: null, seo_description: null, metadata: { visual_cues: videoScript.visual_cues, fact_checked: true } },
         ];
 
         await supabase.from('content').insert(contentItems);

@@ -97,30 +97,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => handleOAuth('google')}
-            className="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background h-10 hover:bg-accent transition-colors"
-          >
-            Google
-          </button>
-          <button
-            onClick={() => handleOAuth('github')}
-            className="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background h-10 hover:bg-accent transition-colors"
-          >
-            GitHub
-          </button>
-        </div>
-
         <div className="text-center text-sm text-muted-foreground">
           <Link href="/forgot-password" className="hover:text-foreground">
             Forgot password?

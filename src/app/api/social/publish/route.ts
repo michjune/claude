@@ -5,7 +5,7 @@ import { publishContent } from '@/lib/social/publisher';
 import type { Content, SocialAccount } from '@/lib/supabase/types';
 
 export async function POST(request: Request) {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

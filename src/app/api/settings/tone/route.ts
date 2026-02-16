@@ -3,7 +3,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { clearToneCache } from '@/lib/ai/tone';
 
 export async function POST() {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {

@@ -4,9 +4,10 @@ import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = createServerSupabaseClient();
+  const { id } = await params;
+  const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -26,7 +27,7 @@ export async function POST(
   const { data, error } = await admin
     .from('content')
     .update(updateData)
-    .eq('id', params.id)
+    .eq('id', id)
     .select()
     .single();
 
@@ -37,14 +38,14 @@ export async function POST(
     await admin
       .from('content')
       .update({ status: 'published', published_at: new Date().toISOString() })
-      .eq('id', params.id);
+      .eq('id', id);
   }
 
   await admin.from('activity_log').insert({
     user_id: user.id,
     action: 'approve_content',
     entity_type: 'content',
-    entity_id: params.id,
+    entity_id: id,
     details: { content_type: data.content_type, scheduled_at },
   });
 

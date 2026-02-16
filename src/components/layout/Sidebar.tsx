@@ -13,7 +13,7 @@ const topics = [
 ];
 
 export async function Sidebar() {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
 
   const { data: recentPosts } = await supabase
     .from('content')

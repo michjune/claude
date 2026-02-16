@@ -54,13 +54,9 @@ export default function ContentEditorPage() {
   const { data: content, isLoading, error } = useQuery({
     queryKey: ['content', params.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('content')
-        .select('*')
-        .eq('id', params.id)
-        .single();
-      if (error) throw error;
-      return data as Content;
+      const res = await fetch(`/api/content/${params.id}`);
+      if (!res.ok) throw new Error('Failed to load content');
+      return res.json() as Promise<Content>;
     },
   });
 

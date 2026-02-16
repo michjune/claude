@@ -4,7 +4,7 @@ import { Footer } from '@/components/layout/Footer';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export default async function HomePage() {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
 
   const { data: latestPosts } = await supabase
     .from('content')
