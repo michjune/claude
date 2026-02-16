@@ -58,6 +58,13 @@ export function PaperCard({ paper }: { paper: Paper }) {
         </p>
       )}
 
+      {/* Abstract */}
+      {paper.abstract && (
+        <p className="mt-2 text-[13px] leading-[1.55] text-muted-foreground line-clamp-3">
+          {paper.abstract}
+        </p>
+      )}
+
       {/* Bottom row */}
       <div className="mt-3 flex items-end justify-between gap-3">
         <TagPills tags={paper.keywords.slice(0, 3)} />
