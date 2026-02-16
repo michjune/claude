@@ -230,7 +230,7 @@ export default function AdminContentQueuePage() {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    {(item.status === 'pending_review' || item.status === 'draft') && (
+                    {(item.status === 'pending_review' || item.status === 'draft' || item.status === 'rejected') && (
                       <>
                         <button
                           onClick={(e) => {
@@ -241,8 +241,9 @@ export default function AdminContentQueuePage() {
                           className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 text-sm font-medium transition-colors"
                         >
                           <CheckCircle className="h-4 w-4" />
-                          Approve
+                          {item.status === 'rejected' ? 'Re-approve' : 'Approve'}
                         </button>
+                        {item.status !== 'rejected' && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -254,6 +255,7 @@ export default function AdminContentQueuePage() {
                           <XCircle className="h-4 w-4" />
                           Reject
                         </button>
+                        )}
                       </>
                     )}
                     <Link

@@ -286,14 +286,14 @@ export default function ContentEditorPage() {
                 {saveMutation.isPending ? 'Saving...' : 'Save Changes'}
               </button>
 
-              {(content.status === 'pending_review' || content.status === 'draft') && (
+              {(content.status === 'pending_review' || content.status === 'draft' || content.status === 'rejected') && (
                 <button
                   onClick={() => statusMutation.mutate('approve')}
                   disabled={statusMutation.isPending}
                   className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-green-600 text-white px-4 py-2 text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition-colors"
                 >
                   <CheckCircle className="h-4 w-4" />
-                  Approve
+                  {content.status === 'rejected' ? 'Re-approve' : 'Approve'}
                 </button>
               )}
 
