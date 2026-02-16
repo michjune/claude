@@ -6,7 +6,11 @@ import { ThemeProvider } from '@/providers/ThemeProvider';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { OrganizationJsonLd } from '@/components/seo/JsonLd';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://stemcellpulse.com';
 
@@ -27,7 +31,7 @@ export const metadata: Metadata = {
     google: process.env.GOOGLE_SITE_VERIFICATION || undefined,
   },
   other: {
-    'theme-color': '#6366f1',
+    'theme-color': '#1a9a8a',
     'color-scheme': 'light dark',
     'geo.region': 'US',
     'geo.placename': 'United States',
@@ -41,7 +45,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={`${inter.variable} font-sans`}>
         <OrganizationJsonLd />
         <ThemeProvider>
           <QueryProvider>

@@ -46,25 +46,29 @@ export default async function HomePage() {
       <Header />
       <main className="flex-1">
         {/* Hero */}
-        <section className="container py-16 md:py-24 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
-            <span className="text-primary">Stem Cell</span> Research,{' '}
-            <span className="text-primary">Simplified</span>
-          </h1>
-          <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-            AI-powered summaries of the latest stem cell research from
-            Nature, Cell, Science, and other high-impact journals. Updated daily.
+        <section className="container py-20 md:py-32 text-center">
+          <p className="text-sm font-medium text-primary tracking-wide uppercase mb-4">
+            AI-Powered Research Intelligence
           </p>
-          <div className="mt-8 flex gap-4 justify-center">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1]">
+            Stem Cell Research,
+            <br />
+            <span className="text-primary">Simplified.</span>
+          </h1>
+          <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            The latest from Nature, Cell, Science, and other high-impact journals.
+            Summarized daily by AI. Built for researchers who value their time.
+          </p>
+          <div className="mt-10 flex gap-3 justify-center">
             <Link
               href="/posts"
-              className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground h-11 px-8 hover:bg-primary/90 transition-colors"
+              className="inline-flex items-center justify-center rounded-full text-sm font-medium bg-primary text-primary-foreground h-12 px-8 hover:bg-primary/90 transition-all duration-200 shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5"
             >
               Read Latest Research
             </Link>
             <Link
               href="/newsletter"
-              className="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent h-11 px-8 transition-colors"
+              className="inline-flex items-center justify-center rounded-full text-sm font-medium border border-border bg-background hover:bg-accent h-12 px-8 transition-all duration-200 hover:-translate-y-0.5"
             >
               Subscribe
             </Link>
@@ -72,24 +76,29 @@ export default async function HomePage() {
         </section>
 
         {/* Latest Posts */}
-        <section className="container pb-16">
-          <h2 className="text-2xl font-bold mb-8">Latest Posts</h2>
+        <section className="container pb-20">
+          <div className="flex items-center justify-between mb-10">
+            <h2 className="text-2xl font-semibold tracking-tight">Latest Posts</h2>
+            <Link href="/posts" className="text-sm text-primary hover:text-primary/80 transition-colors">
+              View all
+            </Link>
+          </div>
           {latestPosts && latestPosts.length > 0 ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
               {latestPosts.map((post) => (
                 <Link
                   key={post.id}
                   href={`/posts/${post.slug}`}
-                  className="group rounded-lg border p-6 hover:border-primary transition-colors"
+                  className="group relative rounded-2xl border bg-card p-6 hover:shadow-lg hover:shadow-black/5 hover:-translate-y-0.5 transition-all duration-300"
                 >
-                  <h3 className="font-semibold group-hover:text-primary transition-colors line-clamp-2">
+                  <h3 className="font-semibold leading-snug group-hover:text-primary transition-colors duration-200 line-clamp-2">
                     {post.title}
                   </h3>
-                  <p className="mt-2 text-sm text-muted-foreground line-clamp-3">
+                  <p className="mt-3 text-sm text-muted-foreground leading-relaxed line-clamp-3">
                     {post.summary || post.seo_description}
                   </p>
                   {post.published_at && (
-                    <p className="mt-3 text-xs text-muted-foreground">
+                    <p className="mt-4 text-xs text-muted-foreground/70">
                       {new Date(post.published_at).toLocaleDateString('en-US', {
                         month: 'long',
                         day: 'numeric',
@@ -101,9 +110,11 @@ export default async function HomePage() {
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground text-center py-12">
-              No posts yet. Check back soon for AI-powered stem cell research summaries.
-            </p>
+            <div className="text-center py-20">
+              <p className="text-muted-foreground">
+                No posts yet. Check back soon for AI-powered stem cell research summaries.
+              </p>
+            </div>
           )}
         </section>
       </main>
