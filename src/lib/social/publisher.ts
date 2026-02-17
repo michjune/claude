@@ -4,7 +4,8 @@ import { postTweet, refreshTwitterToken } from './twitter';
 import { postToLinkedIn, refreshLinkedInToken } from './linkedin';
 import { postToFacebook } from './facebook';
 import { postToTikTok, refreshTikTokToken } from './tiktok';
-import { postToInstagram } from './instagram';
+import { postToInstagram, refreshInstagramToken } from './instagram';
+import { uploadYouTubeShort, refreshYouTubeToken } from './youtube';
 
 interface PublishResult {
   platform: Platform;
@@ -56,8 +57,37 @@ export async function publishContent(
       case 'tiktok':
         // TikTok requires a video URL - this will be handled by video pipeline
         throw new Error('TikTok requires video content - use video publisher');
-      case 'youtube':
-        throw new Error('YouTube requires video content - use video publisher');
+      case 'youtube': {
+        // Find a completed video for this paper
+        const db = createAdminClient();
+        const { data: video } = await db
+          .from('videos')
+          .select('*')
+          .eq('paper_id', content.paper_id)
+          .eq('status', 'completed')
+          .not('video_url', 'is', null)
+          .limit(1)
+          .single();
+
+        if (!video || !video.video_url) {
+          throw new Error('No completed video found for this paper. Render a video first.');
+        }
+
+        // Download video into buffer
+        const videoRes = await fetch(video.video_url);
+        if (!videoRes.ok) throw new Error(`Failed to download video: ${videoRes.status}`);
+        const videoBuffer = Buffer.from(await videoRes.arrayBuffer());
+
+        const tags = (content.metadata as { tags?: string[] })?.tags || ['stemcells', 'science'];
+        result = await uploadYouTubeShort(
+          account,
+          content.title || 'Stem Cell Research Update',
+          content.body,
+          videoBuffer,
+          tags
+        );
+        break;
+      }
       default:
         throw new Error(`Unsupported platform: ${platform}`);
     }
@@ -117,6 +147,15 @@ async function ensureFreshToken(account: SocialAccount): Promise<void> {
     case 'tiktok':
       newToken = await refreshTikTokToken(account.refresh_token);
       break;
+    case 'youtube':
+      newToken = await refreshYouTubeToken(account.refresh_token);
+      break;
+    case 'instagram': {
+      // Instagram uses access_token (not refresh_token) for refresh
+      const igResult = await refreshInstagramToken(account.access_token);
+      newToken = { ...igResult, refresh_token: undefined };
+      break;
+    }
     default:
       return; // Platform doesn't support refresh
   }

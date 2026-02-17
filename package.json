@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.74.0",
+    "@remotion/bundler": "^4.0.424",
     "@remotion/cli": "^4.0.422",
+    "@remotion/lambda": "^4.0.424",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.95.3",
     "@tanstack/react-query": "^5.62.8",

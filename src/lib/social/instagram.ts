@@ -101,3 +101,21 @@ export async function postReelToInstagram(
 
   return { id: mediaId, url: `https://www.instagram.com/reel/${mediaId}` };
 }
+
+export async function refreshInstagramToken(
+  accessToken: string
+): Promise<{ access_token: string; expires_in: number }> {
+  const res = await fetch(
+    `https://graph.instagram.com/refresh_access_token?` +
+      new URLSearchParams({
+        grant_type: 'ig_refresh_token',
+        access_token: accessToken,
+      }).toString()
+  );
+
+  if (!res.ok) {
+    const error = await res.text();
+    throw new Error(`Instagram token refresh failed: ${res.status} ${error}`);
+  }
+  return res.json();
+}

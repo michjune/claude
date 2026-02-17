@@ -122,13 +122,29 @@ export default function SocialPage() {
         <TabsContent value="accounts" className="mt-6 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Connected Accounts</h2>
-            <a
-              href="/api/social/oauth/connect"
-              className="inline-flex items-center gap-2 rounded-md text-sm font-medium bg-primary text-primary-foreground h-9 px-4 hover:bg-primary/90 transition-colors"
-            >
-              <Link2 className="h-4 w-4" />
-              Connect Account
-            </a>
+            <div className="flex items-center gap-2">
+              <a
+                href="/api/social/oauth/connect?platform=twitter"
+                className="inline-flex items-center gap-2 rounded-md text-sm font-medium h-9 px-4 transition-colors bg-sky-500/10 text-sky-600 hover:bg-sky-500/20"
+              >
+                <Twitter className="h-4 w-4" />
+                Connect Twitter
+              </a>
+              <a
+                href="/api/social/oauth/connect?platform=instagram"
+                className="inline-flex items-center gap-2 rounded-md text-sm font-medium h-9 px-4 transition-colors bg-pink-500/10 text-pink-600 hover:bg-pink-500/20"
+              >
+                <Instagram className="h-4 w-4" />
+                Connect Instagram
+              </a>
+              <a
+                href="/api/social/oauth/connect?platform=youtube"
+                className="inline-flex items-center gap-2 rounded-md text-sm font-medium h-9 px-4 transition-colors bg-red-500/10 text-red-600 hover:bg-red-500/20"
+              >
+                <Youtube className="h-4 w-4" />
+                Connect YouTube
+              </a>
+            </div>
           </div>
 
           {accountsLoading ? (

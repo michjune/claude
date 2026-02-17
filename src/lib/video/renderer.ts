@@ -71,39 +71,23 @@ async function renderWithRemotion(
   video: Video,
   voiceoverUrl: string
 ): Promise<string> {
-  // In production, this would use @remotion/lambda or a render API.
-  // The Remotion composition expects these input props:
-  // - script: string
-  // - voiceoverUrl: string
-  // - visualCues: string[]
-  //
-  // For local development / Vercel deployment, you would use:
-  // 1. Remotion Lambda: renderMediaOnLambda()
-  // 2. Or a separate render server
-  //
-  // Placeholder: In development, we store the voiceover URL as the video
-  // since actual Remotion rendering requires infrastructure setup.
+  const inputProps = {
+    script: video.script,
+    voiceoverUrl,
+    visualCues: (video.metadata as { visual_cues?: string[] })?.visual_cues || [],
+  };
 
-  if (process.env.REMOTION_RENDER_URL) {
-    const res = await fetch(process.env.REMOTION_RENDER_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        composition: 'ResearchHighlight',
-        inputProps: {
-          script: video.script,
-          voiceoverUrl,
-          visualCues: (video.metadata as { visual_cues?: string[] })?.visual_cues || [],
-        },
-      }),
+  // Use Remotion Lambda if configured
+  if (process.env.REMOTION_FUNCTION_NAME && process.env.REMOTION_SERVE_URL) {
+    const { renderOnLambda } = await import('./lambda');
+    const result = await renderOnLambda({
+      composition: 'ResearchHighlight',
+      inputProps,
     });
-
-    if (!res.ok) throw new Error(`Remotion render failed: ${res.status}`);
-    const data = await res.json();
-    return data.outputUrl;
+    return result.outputUrl;
   }
 
   // Development fallback: return voiceover URL as video placeholder
-  console.warn('REMOTION_RENDER_URL not set - using voiceover as video placeholder');
+  console.warn('Remotion Lambda not configured - using voiceover as video placeholder');
   return voiceoverUrl;
 }
