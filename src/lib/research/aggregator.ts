@@ -26,7 +26,7 @@ export interface NormalizedPaper {
   trial_id?: string;
 }
 
-export async function fetchAndUpsertPapers(): Promise<{ fetched: number; upserted: number }> {
+export async function fetchAndUpsertPapers(): Promise<{ fetched: number; upserted: number; filtered: number }> {
   const fromDate = format(subDays(new Date(), 7), 'yyyy-MM-dd');
 
   // Fetch from all five sources in parallel
@@ -60,8 +60,11 @@ export async function fetchAndUpsertPapers(): Promise<{ fetched: number; upserte
     papers.push(...fdaRecords.value.map(normalizeFdaRecord));
   }
 
+  // Filter out off-topic papers from broad-journal sources
+  const relevant = papers.filter(isStemCellRelevant);
+
   // Deduplicate by trial_id, DOI, or title
-  const deduped = deduplicatePapers(papers);
+  const deduped = deduplicatePapers(relevant);
 
   // Build virality map once for scoring
   const supabase = createAdminClient();
@@ -70,7 +73,7 @@ export async function fetchAndUpsertPapers(): Promise<{ fetched: number; upserte
   // Upsert to database with priority scores
   const upserted = await upsertPapers(deduped, viralityMap);
 
-  return { fetched: papers.length, upserted };
+  return { fetched: papers.length, upserted, filtered: papers.length - relevant.length };
 }
 
 async function fetchFromPubMed(): Promise<PubMedArticle[]> {
@@ -207,6 +210,51 @@ function normalizeFdaRecord(record: FdaRecord): NormalizedPaper {
     evidence_level: 'regulatory',
     trial_id: record.applicationNumber,
   };
+}
+
+const RELEVANCE_TERMS = [
+  /\bstem\s*cell/i,
+  /\bipsc?\b/i,
+  /\binduced\s+pluripotent/i,
+  /\bpluripoten/i,
+  /\bhematopoietic/i,
+  /\bmesenchymal/i,
+  /\bembryonic\s+stem/i,
+  /\borganoid/i,
+  /\bcell\s+therap/i,
+  /\bgene\s+therap/i,
+  /\bcar[- ]?t\b/i,
+  /\bchimeric\s+antigen/i,
+  /\bregenerative\s+medicine/i,
+  /\btissue\s+engineer/i,
+  /\bbone\s+marrow\s+transplant/i,
+  /\bhematopoietic\s+cell\s+transplant/i,
+  /\bstem\s*-?\s*cell\s*-?\s*transplant/i,
+  /\bcrispr\b/i,
+  /\bgene\s+edit/i,
+  /\breprogramm/i,
+  /\bdifferentiat(?:ion|ed|ing)\b/i,
+  /\bprogenitor\s+cell/i,
+  /\bcell\s+reprogramm/i,
+  /\bex\s+vivo\b/i,
+  /\bautologous\b/i,
+  /\ballogeneic\b/i,
+  /\bxenotransplant/i,
+  /\bcell[- ]based\s+therap/i,
+];
+
+function isStemCellRelevant(paper: NormalizedPaper): boolean {
+  // Always keep clinical trials and FDA records (already filtered at source)
+  if (paper.source_type === 'trial' || paper.evidence_level === 'regulatory') return true;
+
+  const text = [
+    paper.title,
+    paper.abstract || '',
+    paper.keywords.join(' '),
+    paper.mesh_terms.join(' '),
+  ].join(' ');
+
+  return RELEVANCE_TERMS.some(pattern => pattern.test(text));
 }
 
 function deduplicatePapers(papers: NormalizedPaper[]): NormalizedPaper[] {
