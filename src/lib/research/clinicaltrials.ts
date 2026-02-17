@@ -18,8 +18,10 @@ const SEARCH_TERMS = [
   '"iPSC"',
   '"CAR-T"',
   '"cell therapy"',
-  '"gene therapy"',
   '"induced pluripotent"',
+  '"mesenchymal"',
+  '"hematopoietic stem"',
+  '"hematopoietic cell transplant"',
 ];
 
 function buildAdvancedFilter(minDate: string): string {

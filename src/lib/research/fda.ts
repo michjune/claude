@@ -11,37 +11,29 @@ export interface FdaRecord {
   submissionStatus?: string;
 }
 
-// Known cell therapy, gene therapy, and regenerative medicine BLA application numbers
+// Known cell therapy and stem cell-based BLA application numbers
 const KNOWN_BLAS = [
-  'BLA125646', // KYMRIAH (tisagenlecleucel) - CAR-T
-  'BLA125643', // YESCARTA (axicabtagene ciloleucel) - CAR-T
-  'BLA125706', // TECARTUS (brexucabtagene autoleucel) - CAR-T
-  'BLA125714', // BREYANZI (lisocabtagene maraleucel) - CAR-T
-  'BLA125748', // ABECMA (idecabtagene vicleucel) - CAR-T
-  'BLA125764', // CARVYKTI (ciltacabtagene autoleucel) - CAR-T
-  'BLA125694', // ZOLGENSMA (onasemnogene abeparvovec) - gene therapy
-  'BLA125707', // LUXTURNA (voretigene neparvovec) - gene therapy
-  'BLA761278', // SKYSONA (elivaldogene autotemcel) - gene therapy
-  'BLA125745', // CASGEVY (exagamglogene autotemcel) - gene editing
-  'BLA125763', // LYFGENIA (lovotibeglogene autotemcel) - gene therapy
-  'BLA761331', // ELEVIDYS (delandistrogene moxeparvovec) - gene therapy
+  'BLA125646', // KYMRIAH (tisagenlecleucel) - CAR-T cell therapy
+  'BLA125643', // YESCARTA (axicabtagene ciloleucel) - CAR-T cell therapy
+  'BLA125706', // TECARTUS (brexucabtagene autoleucel) - CAR-T cell therapy
+  'BLA125714', // BREYANZI (lisocabtagene maraleucel) - CAR-T cell therapy
+  'BLA125748', // ABECMA (idecabtagene vicleucel) - CAR-T cell therapy
+  'BLA125764', // CARVYKTI (ciltacabtagene autoleucel) - CAR-T cell therapy
+  'BLA761278', // SKYSONA (elivaldogene autotemcel) - HSC gene therapy (autologous stem cell)
+  'BLA125745', // CASGEVY (exagamglogene autotemcel) - gene-edited HSCs
+  'BLA125763', // LYFGENIA (lovotibeglogene autotemcel) - HSC gene therapy (autologous stem cell)
   'BLA125389', // PROVENGE (sipuleucel-T) - cell therapy
   'BLA125557', // GINTUIT - cell therapy
-  'BLA125709', // HEMGENIX (etranacogene dezaparvovec) - gene therapy
-  'BLA125750', // ADSTILADRIN (nadofaragene firadenovec) - gene therapy
-  'BLA761283', // ROCTAVIAN (valoctocogene roxaparvovec) - gene therapy
-  'BLA125747', // OMISIRGE (omidubicel) - stem cell
+  'BLA125747', // OMISIRGE (omidubicel) - stem cell expansion
 ];
 
-// Sponsors known for cell/gene therapy products
+// Sponsors known for cell therapy / stem cell products
 const THERAPY_SPONSORS = [
   'NOVARTIS',
   'KITE PHARMA',
   'BRISTOL-MYERS SQUIBB',
   'BLUEBIRD BIO',
-  'SPARK THERAPEUTICS',
   'VERTEX',
-  'SAREPTA THERAPEUTICS',
 ];
 
 export async function searchFdaApprovals(limit = 50): Promise<FdaRecord[]> {

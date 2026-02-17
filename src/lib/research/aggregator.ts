@@ -213,34 +213,52 @@ function normalizeFdaRecord(record: FdaRecord): NormalizedPaper {
 }
 
 const RELEVANCE_TERMS = [
+  // Core stem cell terms
   /\bstem\s*cell/i,
   /\bipsc?\b/i,
   /\binduced\s+pluripotent/i,
   /\bpluripoten/i,
-  /\bhematopoietic/i,
-  /\bmesenchymal/i,
   /\bembryonic\s+stem/i,
   /\borganoid/i,
+  /\breprogramm/i,
+  /\bprogenitor\s+cell/i,
+  /\bdifferentiat(?:ion|ed|ing)\b/i,
+  // Stem cell types
+  /\bhematopoietic\b/i,
+  /\bmesenchymal/i,
+  /\b[hm]sc\b/i,
+  /\bstromal\s+cell/i,
+  /\bneural\s+stem/i,
+  /\bcardiac\s+(?:stem|progenitor)/i,
+  /\bendothelial\s+progenitor/i,
+  // Cell therapy
   /\bcell\s+therap/i,
-  /\bgene\s+therap/i,
+  /\bcell[- ]based\s+therap/i,
   /\bcar[- ]?t\b/i,
   /\bchimeric\s+antigen/i,
-  /\bregenerative\s+medicine/i,
-  /\btissue\s+engineer/i,
+  /\badoptive\s+cell/i,
+  /\btcr[- ]?t\b/i,
+  // Secretome / paracrine
+  /\bsecretome/i,
+  /\bexosome/i,
+  /\bextracellular\s+vesicle/i,
+  /\bmicrovesicle/i,
+  /\bconditioned\s+medium/i,
+  // Transplant / engraftment
   /\bbone\s+marrow\s+transplant/i,
   /\bhematopoietic\s+cell\s+transplant/i,
   /\bstem\s*-?\s*cell\s*-?\s*transplant/i,
+  /\bengraftment/i,
+  // Techniques used with stem cells
   /\bcrispr\b/i,
   /\bgene\s+edit/i,
-  /\breprogramm/i,
-  /\bdifferentiat(?:ion|ed|ing)\b/i,
-  /\bprogenitor\s+cell/i,
   /\bcell\s+reprogramm/i,
   /\bex\s+vivo\b/i,
   /\bautologous\b/i,
   /\ballogeneic\b/i,
-  /\bxenotransplant/i,
-  /\bcell[- ]based\s+therap/i,
+  // Regenerative medicine
+  /\bregenerative\s+medicine/i,
+  /\btissue\s+engineer/i,
 ];
 
 function isStemCellRelevant(paper: NormalizedPaper): boolean {
