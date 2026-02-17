@@ -39,7 +39,7 @@ export default async function HomePage() {
       .from('papers')
       .select('*')
       .order('published_date', { ascending: false })
-      .limit(50),
+      .limit(200),
     supabase
       .from('content')
       .select('*')

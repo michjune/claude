@@ -1,6 +1,8 @@
 import { searchPubMed, fetchPubMedArticles, buildStemCellQuery, type PubMedArticle } from './pubmed';
 import { searchCrossRef, type CrossRefWork } from './crossref';
 import { searchOpenAlex, type OpenAlexWork } from './openalex';
+import { searchClinicalTrials, type ClinicalTrial } from './clinicaltrials';
+import { searchFdaApprovals, type FdaRecord } from './fda';
 import { getJournalNames, getJournalISSNs, getOpenAlexSourceIds } from './journals';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { format, subDays } from 'date-fns';
@@ -18,16 +20,21 @@ export interface NormalizedPaper {
   source_url?: string;
   keywords: string[];
   mesh_terms: string[];
+  source_type?: string;
+  evidence_level?: string;
+  trial_id?: string;
 }
 
 export async function fetchAndUpsertPapers(): Promise<{ fetched: number; upserted: number }> {
   const fromDate = format(subDays(new Date(), 7), 'yyyy-MM-dd');
 
-  // Fetch from all three sources in parallel
-  const [pubmedArticles, crossrefWorks, openalexWorks] = await Promise.allSettled([
+  // Fetch from all five sources in parallel
+  const [pubmedArticles, crossrefWorks, openalexWorks, clinicalTrials, fdaRecords] = await Promise.allSettled([
     fetchFromPubMed(),
     fetchFromCrossRef(fromDate),
     fetchFromOpenAlex(fromDate),
+    fetchFromClinicalTrials(),
+    fetchFromFda(),
   ]);
 
   const papers: NormalizedPaper[] = [];
@@ -44,8 +51,16 @@ export async function fetchAndUpsertPapers(): Promise<{ fetched: number; upserte
     papers.push(...openalexWorks.value.map(normalizeOpenAlex));
   }
 
-  // Deduplicate by DOI
-  const deduped = deduplicateByDoi(papers);
+  if (clinicalTrials.status === 'fulfilled') {
+    papers.push(...clinicalTrials.value.map(normalizeClinicalTrial));
+  }
+
+  if (fdaRecords.status === 'fulfilled') {
+    papers.push(...fdaRecords.value.map(normalizeFdaRecord));
+  }
+
+  // Deduplicate by trial_id, DOI, or title
+  const deduped = deduplicatePapers(papers);
 
   // Upsert to database
   const upserted = await upsertPapers(deduped);
@@ -75,6 +90,14 @@ async function fetchFromOpenAlex(fromDate: string): Promise<OpenAlexWork[]> {
   });
 }
 
+async function fetchFromClinicalTrials(): Promise<ClinicalTrial[]> {
+  return searchClinicalTrials(50);
+}
+
+async function fetchFromFda(): Promise<FdaRecord[]> {
+  return searchFdaApprovals(50);
+}
+
 function normalizePubMed(article: PubMedArticle): NormalizedPaper {
   return {
     title: article.title,
@@ -88,6 +111,7 @@ function normalizePubMed(article: PubMedArticle): NormalizedPaper {
     source_url: article.doi ? `https://doi.org/${article.doi}` : `https://pubmed.ncbi.nlm.nih.gov/${article.pmid}`,
     keywords: article.keywords,
     mesh_terms: article.meshTerms,
+    source_type: 'journal',
   };
 }
 
@@ -103,6 +127,7 @@ function normalizeCrossRef(work: CrossRefWork): NormalizedPaper {
     source_url: work.sourceUrl,
     keywords: [],
     mesh_terms: [],
+    source_type: 'journal',
   };
 }
 
@@ -120,33 +145,97 @@ function normalizeOpenAlex(work: OpenAlexWork): NormalizedPaper {
     source_url: work.sourceUrl,
     keywords: work.keywords,
     mesh_terms: [],
+    source_type: 'journal',
   };
 }
 
-function deduplicateByDoi(papers: NormalizedPaper[]): NormalizedPaper[] {
+function normalizeClinicalTrial(trial: ClinicalTrial): NormalizedPaper {
+  const conditions = trial.conditions.length > 0 ? trial.conditions.join('; ') : '';
+  const interventionText = trial.interventions.length > 0 ? trial.interventions.join('; ') : '';
+
+  const summaryParts = [trial.summary || ''];
+  if (trial.phase) summaryParts.push(`Phase: ${trial.phase}`);
+  if (trial.status) summaryParts.push(`Status: ${trial.status}`);
+  if (conditions) summaryParts.push(`Conditions: ${conditions}`);
+  if (interventionText) summaryParts.push(`Interventions: ${interventionText}`);
+
+  return {
+    title: trial.title,
+    abstract: summaryParts.filter(Boolean).join('\n'),
+    authors: trial.sponsor ? [trial.sponsor] : [],
+    journal_name: 'ClinicalTrials.gov',
+    published_date: trial.lastUpdateDate || trial.startDate,
+    citation_count: 0,
+    source_url: `https://clinicaltrials.gov/study/${trial.nctId}`,
+    keywords: trial.conditions,
+    mesh_terms: [],
+    source_type: 'trial',
+    evidence_level: 'clinical-trial',
+    trial_id: trial.nctId,
+  };
+}
+
+function normalizeFdaRecord(record: FdaRecord): NormalizedPaper {
+  const title = [
+    record.brandName,
+    record.genericName ? `(${record.genericName})` : null,
+    record.actionType ? `- ${record.actionType}` : null,
+  ].filter(Boolean).join(' ') || `FDA ${record.applicationNumber}`;
+
+  const abstractParts = [];
+  if (record.submissionType) abstractParts.push(`Submission Type: ${record.submissionType}`);
+  if (record.submissionStatus) abstractParts.push(`Status: ${record.submissionStatus}`);
+  if (record.sponsorName) abstractParts.push(`Sponsor: ${record.sponsorName}`);
+  if (record.actionDate) abstractParts.push(`Action Date: ${record.actionDate}`);
+
+  return {
+    title,
+    abstract: abstractParts.join('\n') || undefined,
+    authors: record.sponsorName ? [record.sponsorName] : [],
+    journal_name: 'FDA',
+    published_date: record.actionDate,
+    citation_count: 0,
+    source_url: `https://www.accessdata.fda.gov/scripts/cder/daf/index.cfm?event=overview.process&ApplNo=${record.applicationNumber.replace(/[^0-9]/g, '')}`,
+    keywords: [],
+    mesh_terms: [],
+    source_type: 'news',
+    evidence_level: 'regulatory',
+    trial_id: record.applicationNumber,
+  };
+}
+
+function deduplicatePapers(papers: NormalizedPaper[]): NormalizedPaper[] {
   const seen = new Map<string, NormalizedPaper>();
-  const noDoi: NormalizedPaper[] = [];
 
   for (const paper of papers) {
-    if (!paper.doi) {
-      // For papers without DOI, deduplicate by title similarity
-      const titleKey = paper.title.toLowerCase().replace(/[^a-z0-9]/g, '');
-      if (!seen.has(titleKey)) {
-        seen.set(titleKey, paper);
-        noDoi.push(paper);
+    // First check trial_id as dedup key
+    if (paper.trial_id) {
+      const trialKey = `trial:${paper.trial_id.toLowerCase()}`;
+      if (!seen.has(trialKey)) {
+        seen.set(trialKey, paper);
       } else {
-        // Merge: prefer the one with more data
-        const existing = seen.get(titleKey)!;
-        mergePaper(existing, paper);
+        mergePaper(seen.get(trialKey)!, paper);
       }
-    } else {
-      const doiKey = paper.doi.toLowerCase();
+      continue;
+    }
+
+    // Then DOI
+    if (paper.doi) {
+      const doiKey = `doi:${paper.doi.toLowerCase()}`;
       if (!seen.has(doiKey)) {
         seen.set(doiKey, paper);
       } else {
-        const existing = seen.get(doiKey)!;
-        mergePaper(existing, paper);
+        mergePaper(seen.get(doiKey)!, paper);
       }
+      continue;
+    }
+
+    // Fall back to title similarity
+    const titleKey = `title:${paper.title.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+    if (!seen.has(titleKey)) {
+      seen.set(titleKey, paper);
+    } else {
+      mergePaper(seen.get(titleKey)!, paper);
     }
   }
 
@@ -169,28 +258,54 @@ async function upsertPapers(papers: NormalizedPaper[]): Promise<number> {
   let upserted = 0;
 
   for (const paper of papers) {
+    const row = {
+      title: paper.title,
+      abstract: paper.abstract,
+      authors: paper.authors,
+      journal_name: paper.journal_name,
+      doi: paper.doi,
+      pmid: paper.pmid,
+      openalex_id: paper.openalex_id,
+      published_date: paper.published_date,
+      citation_count: paper.citation_count,
+      source_url: paper.source_url,
+      keywords: paper.keywords,
+      mesh_terms: paper.mesh_terms,
+      source_type: paper.source_type || 'journal',
+      evidence_level: paper.evidence_level,
+      trial_id: paper.trial_id,
+    };
+
+    // For records with a trial_id but no DOI, use select-then-insert/update
+    // since the DOI-based upsert won't work for them
+    if (paper.trial_id && !paper.doi) {
+      const { data: existing } = await supabase
+        .from('papers')
+        .select('id')
+        .eq('trial_id', paper.trial_id)
+        .maybeSingle();
+
+      if (existing) {
+        const { error } = await supabase
+          .from('papers')
+          .update(row)
+          .eq('id', existing.id);
+        if (!error) upserted++;
+      } else {
+        const { error } = await supabase
+          .from('papers')
+          .insert(row);
+        if (!error) upserted++;
+      }
+      continue;
+    }
+
     const { error } = await supabase
       .from('papers')
-      .upsert(
-        {
-          title: paper.title,
-          abstract: paper.abstract,
-          authors: paper.authors,
-          journal_name: paper.journal_name,
-          doi: paper.doi,
-          pmid: paper.pmid,
-          openalex_id: paper.openalex_id,
-          published_date: paper.published_date,
-          citation_count: paper.citation_count,
-          source_url: paper.source_url,
-          keywords: paper.keywords,
-          mesh_terms: paper.mesh_terms,
-        },
-        {
-          onConflict: 'doi',
-          ignoreDuplicates: false,
-        }
-      );
+      .upsert(row, {
+        onConflict: 'doi',
+        ignoreDuplicates: false,
+      });
 
     if (!error) upserted++;
   }
