@@ -27,7 +27,7 @@ export async function GET(request: Request) {
       .from('papers')
       .select('*')
       .eq('content_generated', false)
-      .order('fetched_at', { ascending: false })
+      .order('priority_score', { ascending: false, nullsFirst: false })
       .limit(5);
 
     if (error) throw error;

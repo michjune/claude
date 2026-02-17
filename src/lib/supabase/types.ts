@@ -45,6 +45,7 @@ export interface Paper {
   evidence_level: string | null;
   key_finding: string | null;
   trial_id: string | null;
+  priority_score: number;
   content_generated: boolean;
   fetched_at: string;
   metadata: Record<string, unknown>;

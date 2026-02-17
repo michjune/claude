@@ -5,6 +5,7 @@ import { searchClinicalTrials, type ClinicalTrial } from './clinicaltrials';
 import { searchFdaApprovals, type FdaRecord } from './fda';
 import { getJournalNames, getJournalISSNs, getOpenAlexSourceIds } from './journals';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { buildTopicViralityMap, calculatePriorityScore, type ViralityMap } from './scoring';
 import { format, subDays } from 'date-fns';
 
 export interface NormalizedPaper {
@@ -62,8 +63,12 @@ export async function fetchAndUpsertPapers(): Promise<{ fetched: number; upserte
   // Deduplicate by trial_id, DOI, or title
   const deduped = deduplicatePapers(papers);
 
-  // Upsert to database
-  const upserted = await upsertPapers(deduped);
+  // Build virality map once for scoring
+  const supabase = createAdminClient();
+  const viralityMap = await buildTopicViralityMap(supabase);
+
+  // Upsert to database with priority scores
+  const upserted = await upsertPapers(deduped, viralityMap);
 
   return { fetched: papers.length, upserted };
 }
@@ -253,7 +258,7 @@ function mergePaper(target: NormalizedPaper, source: NormalizedPaper): void {
   if (source.authors.length > target.authors.length) target.authors = source.authors;
 }
 
-async function upsertPapers(papers: NormalizedPaper[]): Promise<number> {
+async function upsertPapers(papers: NormalizedPaper[], viralityMap: ViralityMap): Promise<number> {
   const supabase = createAdminClient();
   let upserted = 0;
 
@@ -274,6 +279,7 @@ async function upsertPapers(papers: NormalizedPaper[]): Promise<number> {
       source_type: paper.source_type || 'journal',
       evidence_level: paper.evidence_level,
       trial_id: paper.trial_id,
+      priority_score: calculatePriorityScore(paper, viralityMap),
     };
 
     // For records with a trial_id but no DOI, use select-then-insert/update
