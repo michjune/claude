@@ -37,7 +37,7 @@ export async function POST(
   const SOCIAL_TYPES = ['tweet', 'linkedin_post', 'instagram_caption', 'facebook_post', 'tiktok_caption', 'youtube_description'];
 
   // Blog posts publish immediately, social content gets auto-scheduled
-  if (data.content_type === 'blog_post' && !scheduled_at) {
+  if (data.content_type === 'blog_post') {
     await admin
       .from('content')
       .update({ status: 'published', published_at: new Date().toISOString() })
