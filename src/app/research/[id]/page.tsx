@@ -6,6 +6,7 @@ import { EvidenceBadge } from '@/components/research/EvidenceBadge';
 import { SourceLinks } from '@/components/research/SourceLinks';
 import { TagPills } from '@/components/research/TagPills';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import type { Metadata } from 'next';
 
 interface Props {
@@ -14,7 +15,7 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminClient();
   const { data: paper } = await supabase
     .from('papers')
     .select('title, abstract, journal_name')
@@ -32,8 +33,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function PaperDetailPage({ params }: Props) {
   const { id } = await params;
   const supabase = await createServerSupabaseClient();
+  const adminClient = createAdminClient();
 
-  const { data: paper } = await supabase
+  const { data: paper } = await adminClient
     .from('papers')
     .select('*')
     .eq('id', id)

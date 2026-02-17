@@ -1,6 +1,7 @@
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { ResearchStats } from '@/components/research/ResearchStats';
 import { UnifiedFeed } from '@/components/research/UnifiedFeed';
 import { WebSiteJsonLd } from '@/components/seo/JsonLd';
@@ -33,9 +34,10 @@ export const metadata: Metadata = {
 
 export default async function HomePage() {
   const supabase = await createServerSupabaseClient();
+  const adminClient = createAdminClient();
 
   const [{ data: papers }, { data: blogPosts }] = await Promise.all([
-    supabase
+    adminClient
       .from('papers')
       .select('*')
       .order('published_date', { ascending: false })
