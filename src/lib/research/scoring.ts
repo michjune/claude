@@ -253,12 +253,20 @@ export function calculatePriorityScore(paper: NormalizedPaper, viralityMap: Vira
   const virality = scoreTopicVirality(paper, viralityMap);
   const signals = scoreContentSignals(paper);
 
-  const score =
+  let score =
     WEIGHTS.scientificAuthority * authority +
     WEIGHTS.evidenceStrength * evidence +
     WEIGHTS.recency * recency +
     WEIGHTS.topicVirality * virality +
     WEIGHTS.contentSignals * signals;
+
+  // Deprioritize traditional hematologic malignancy papers (myeloma, leukemia,
+  // lymphoma) that passed the relevance filter. These are less interesting to
+  // readers focused on novel stem cell therapies.
+  const text = [paper.title, paper.abstract || ''].join(' ');
+  if (/\bmyeloma\b|\bleu[ck]?[ae]?mia\b|\blymphoma\b|\bmyelodysplastic\b|\bgvhd\b|\bgraft[- ]versus[- ]host/i.test(text)) {
+    score *= 0.7;
+  }
 
   return Math.round(score * 100) / 100;
 }

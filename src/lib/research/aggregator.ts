@@ -261,6 +261,40 @@ const RELEVANCE_TERMS = [
   /\btissue\s+engineer/i,
 ];
 
+// Papers matching these patterns WITHOUT a novel therapy signal are filtered out.
+// Traditional hematologic malignancy papers (myeloma chemo outcomes, leukemia
+// survival stats, routine transplant follow-ups) crowd out genuinely new stem
+// cell therapies. We keep them only when paired with a novelty signal.
+const HEME_MALIGNANCY_TERMS = [
+  /\bmyeloma\b/i,
+  /\bleu[ck]?[ae]?mia\b/i,
+  /\blymphoma\b/i,
+  /\bmyelodysplastic/i,
+  /\bmyeloproliferative/i,
+  /\bmyelofibrosis/i,
+  /\bgraft[- ]versus[- ]host/i,
+  /\bgvhd\b/i,
+];
+
+// If a heme-malignancy paper also mentions one of these, keep it.
+const NOVELTY_SIGNALS = [
+  /\bcar[- ]?t\b/i,
+  /\bchimeric\s+antigen/i,
+  /\bcrispr\b/i,
+  /\bgene\s+edit/i,
+  /\bgene\s+therap/i,
+  /\bipsc?\b/i,
+  /\binduced\s+pluripotent/i,
+  /\bfirst[- ]in[- ]human/i,
+  /\bnovel\b/i,
+  /\bengineered\b/i,
+  /\breprogramm/i,
+  /\borganoid/i,
+  /\bexosome/i,
+  /\bsecretome/i,
+  /\bregenerative/i,
+];
+
 function isStemCellRelevant(paper: NormalizedPaper): boolean {
   // Always keep clinical trials and FDA records (already filtered at source)
   if (paper.source_type === 'trial' || paper.evidence_level === 'regulatory') return true;
@@ -272,7 +306,16 @@ function isStemCellRelevant(paper: NormalizedPaper): boolean {
     paper.mesh_terms.join(' '),
   ].join(' ');
 
-  return RELEVANCE_TERMS.some(pattern => pattern.test(text));
+  if (!RELEVANCE_TERMS.some(pattern => pattern.test(text))) return false;
+
+  // If the paper is primarily about a hematologic malignancy, only keep it
+  // when it also contains a novelty signal (new therapy, gene editing, etc.)
+  const isHemeMalignancy = HEME_MALIGNANCY_TERMS.some(p => p.test(text));
+  if (isHemeMalignancy) {
+    return NOVELTY_SIGNALS.some(p => p.test(text));
+  }
+
+  return true;
 }
 
 function deduplicatePapers(papers: NormalizedPaper[]): NormalizedPaper[] {
