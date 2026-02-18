@@ -125,7 +125,15 @@ function extractTag(xml: string, tag: string): string | null {
 }
 
 function cleanHtml(text: string): string {
-  return text
+  // PubMed wraps italic/bold text in inline tags like <i>, <b>, <sub>, <sup>.
+  // When these sit mid-word (e.g. "R<i>E</i>gulatory"), stripping tags leaves
+  // broken casing like "REgulatory". Fix by lowercasing the content of inline
+  // tags before stripping, so "R<i>E</i>gulatory" becomes "Regulatory".
+  let cleaned = text.replace(
+    /<(i|b|em|strong|sub|sup|u)>(.*?)<\/\1>/gi,
+    (_, _tag, inner) => inner.toLowerCase()
+  );
+  cleaned = cleaned
     .replace(/<[^>]+>/g, '')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
@@ -134,6 +142,7 @@ function cleanHtml(text: string): string {
     .replace(/&#39;/g, "'")
     .replace(/&apos;/g, "'")
     .trim();
+  return cleaned;
 }
 
 export function buildStemCellQuery(journals?: string[]): string {

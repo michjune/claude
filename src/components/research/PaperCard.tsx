@@ -20,6 +20,15 @@ function decodeEntities(text: string): string {
   return text.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
 }
 
+// Fix casing artifacts from PubMed inline tags (e.g. "REgulatory" -> "Regulatory")
+// Pattern: a lowercase letter followed by an uppercase letter followed by lowercase,
+// mid-word, where the uppercase letter should be lowercase.
+function fixInlineTagCasing(text: string): string {
+  return text.replace(/([a-z])([A-Z])([a-z])/g, (_, before, upper, after) => {
+    return before + upper.toLowerCase() + after;
+  });
+}
+
 export function PaperCard({ paper }: { paper: Paper }) {
   return (
     <article className="group rounded-lg border border-border-subtle bg-card p-4 transition-all duration-200 hover:shadow-elevated hover:border-border">
@@ -44,7 +53,7 @@ export function PaperCard({ paper }: { paper: Paper }) {
       {/* Title */}
       <Link href={`/research/${paper.id}`} className="block">
         <h3 className="text-[15px] font-semibold leading-[1.35] text-foreground group-hover:text-primary transition-colors duration-150 line-clamp-2">
-          {paper.title}
+          {fixInlineTagCasing(decodeEntities(paper.title))}
         </h3>
       </Link>
 
