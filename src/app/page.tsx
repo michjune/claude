@@ -36,12 +36,12 @@ export default async function HomePage() {
   const supabase = await createServerSupabaseClient();
   const adminClient = createAdminClient();
 
-  const [{ data: papers }, { data: blogPosts }] = await Promise.all([
+  const [{ data: rawPapers }, { data: blogPosts }] = await Promise.all([
     adminClient
       .from('papers')
       .select('*')
       .order('published_date', { ascending: false })
-      .limit(200),
+      .limit(250),
     supabase
       .from('content')
       .select('*')
@@ -50,6 +50,17 @@ export default async function HomePage() {
       .order('published_at', { ascending: false })
       .limit(20),
   ]);
+
+  // Filter out routine hematologic malignancy papers (myeloma, leukemia,
+  // lymphoma, etc.) unless they mention a novel therapy approach
+  const HEME_FILTER = /\bmyeloma\b|\bleu[ck]?[ae]?mia\b|\blymphoma\b|\bmyelodysplastic\b|\bmyelofibrosis\b|\bgvhd\b|\bgraft[- ]versus[- ]host/i;
+  const NOVELTY_SIGNAL = /\bcar[- ]?t\b|\bcrispr\b|\bgene\s+edit|\bgene\s+therap|\bipsc?\b|\binduced\s+pluripotent|\bfirst[- ]in[- ]human|\bnovel\b|\bengineered\b|\breprogramm|\borganoid|\bregenerative/i;
+
+  const papers = (rawPapers || []).filter((p) => {
+    const text = [p.title, p.abstract || '', (p.keywords || []).join(' ')].join(' ');
+    if (HEME_FILTER.test(text) && !NOVELTY_SIGNAL.test(text)) return false;
+    return true;
+  });
 
   return (
     <div className="flex min-h-screen flex-col">

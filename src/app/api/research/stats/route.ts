@@ -58,10 +58,23 @@ export async function GET() {
       .eq('status', 'published'),
     supabase
       .from('papers')
-      .select('id, title, journal_name, citation_count')
+      .select('id, title, journal_name, citation_count, abstract, keywords')
       .order('citation_count', { ascending: false })
-      .limit(5),
+      .limit(20),
   ]);
+
+  // Filter routine heme-malignancy papers from trending
+  const HEME_FILTER = /\bmyeloma\b|\bleu[ck]?[ae]?mia\b|\blymphoma\b|\bmyelodysplastic\b|\bmyelofibrosis\b|\bgvhd\b|\bgraft[- ]versus[- ]host/i;
+  const NOVELTY_SIGNAL = /\bcar[- ]?t\b|\bcrispr\b|\bgene\s+edit|\bgene\s+therap|\bipsc?\b|\binduced\s+pluripotent|\bfirst[- ]in[- ]human|\bnovel\b|\bengineered\b|\breprogramm|\borganoid|\bregenerative/i;
+
+  const filteredTrending = (trending || [])
+    .filter((p) => {
+      const text = [p.title, p.abstract || '', (p.keywords || []).join(' ')].join(' ');
+      if (HEME_FILTER.test(text) && !NOVELTY_SIGNAL.test(text)) return false;
+      return true;
+    })
+    .slice(0, 5)
+    .map(({ id, title, journal_name, citation_count }) => ({ id, title, journal_name, citation_count }));
 
   // Topic counts — parallel
   const topicCounts = await Promise.all(
@@ -85,7 +98,7 @@ export async function GET() {
     regulatoryWeek: regulatoryWeek ?? 0,
     totalPapers: totalPapers ?? 0,
     totalPublished: totalPublished ?? 0,
-    trending: trending ?? [],
+    trending: filteredTrending,
     topics,
     updatedAt: new Date().toISOString(),
   });
