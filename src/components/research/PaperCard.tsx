@@ -51,19 +51,16 @@ export function PaperCard({ paper }: { paper: Paper }) {
         </p>
       )}
 
-      {/* Key finding */}
-      {paper.key_finding && (
+      {/* Key finding (preferred) or truncated abstract */}
+      {paper.key_finding ? (
         <p className="mt-2 text-[13px] leading-[1.55] text-muted-foreground line-clamp-2">
           {paper.key_finding}
         </p>
-      )}
-
-      {/* Abstract */}
-      {paper.abstract && (
-        <p className="mt-2 text-[13px] leading-[1.55] text-muted-foreground line-clamp-3">
+      ) : paper.abstract ? (
+        <p className="mt-2 text-[13px] leading-[1.55] text-muted-foreground line-clamp-2">
           {paper.abstract}
         </p>
-      )}
+      ) : null}
 
       {/* Bottom row */}
       <div className="mt-3 flex items-end justify-between gap-3">

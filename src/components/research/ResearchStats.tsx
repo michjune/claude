@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
 
 interface Stats {
   papersWeek: number;
@@ -104,12 +105,12 @@ export function ResearchStats() {
           </p>
           <div className="space-y-2.5">
             {(stats?.trending || []).map((item, i) => (
-              <div key={item.id} className="flex gap-2.5">
+              <Link key={item.id} href={`/research/${item.id}`} className="flex gap-2.5 group">
                 <span className="text-[13px] font-mono text-muted-foreground/30 tabular-nums leading-tight mt-0.5">
                   {String(i + 1).padStart(2, '0')}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-medium leading-snug text-foreground line-clamp-2">
+                  <p className="text-[13px] font-medium leading-snug text-foreground line-clamp-2 group-hover:text-primary transition-colors">
                     {item.title}
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
@@ -121,7 +122,7 @@ export function ResearchStats() {
                     )}
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
             {loading && !stats && (
               <div className="space-y-2.5">
