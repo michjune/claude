@@ -107,7 +107,7 @@ function parsePubMedXml(xml: string): PubMedArticle[] {
       title: cleanHtml(title),
       abstract: abstract ? cleanHtml(abstract) : undefined,
       authors,
-      journal,
+      journal: journal ? cleanHtml(journal) : undefined,
       publishedDate,
       doi,
       keywords,
@@ -125,7 +125,15 @@ function extractTag(xml: string, tag: string): string | null {
 }
 
 function cleanHtml(text: string): string {
-  return text.replace(/<[^>]+>/g, '').trim();
+  return text
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .trim();
 }
 
 export function buildStemCellQuery(journals?: string[]): string {

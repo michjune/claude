@@ -95,7 +95,7 @@ function parseWork(item: Record<string, unknown>): CrossRefWork | null {
     title: cleanAbstract(title),
     abstract: abstract ? cleanAbstract(abstract) : undefined,
     authors,
-    journal,
+    journal: journal ? cleanAbstract(journal) : undefined,
     issn,
     publishedDate,
     citationCount,
@@ -108,5 +108,11 @@ function cleanAbstract(text: string): string {
     .replace(/<jats:[^>]+>/g, '')
     .replace(/<\/jats:[^>]+>/g, '')
     .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
     .trim();
 }

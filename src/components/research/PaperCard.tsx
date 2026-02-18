@@ -16,6 +16,10 @@ function truncateAuthors(authors: string[], max = 3) {
   return `${authors.slice(0, max).join(', ')} et al.`;
 }
 
+function decodeEntities(text: string): string {
+  return text.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
+}
+
 export function PaperCard({ paper }: { paper: Paper }) {
   return (
     <article className="group rounded-lg border border-border-subtle bg-card p-4 transition-all duration-200 hover:shadow-elevated hover:border-border">
@@ -23,7 +27,7 @@ export function PaperCard({ paper }: { paper: Paper }) {
       <div className="flex items-center gap-2 mb-2 flex-wrap">
         {paper.journal_name && (
           <span className="text-[11px] font-semibold uppercase tracking-wide text-primary/80">
-            {paper.journal_name}
+            {decodeEntities(paper.journal_name)}
           </span>
         )}
         {paper.journal_name && paper.published_date && (
