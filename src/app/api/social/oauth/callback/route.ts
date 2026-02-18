@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { decrypt } from '../connect/route';
+import { decrypt } from '@/lib/social/oauth-crypto';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL!;
 const CALLBACK_URL = `${SITE_URL}/api/social/oauth/callback`;

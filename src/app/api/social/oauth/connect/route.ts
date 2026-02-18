@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { encrypt } from '@/lib/social/oauth-crypto';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL!;
 const CALLBACK_URL = `${SITE_URL}/api/social/oauth/callback`;
@@ -93,30 +94,4 @@ export async function GET(request: NextRequest) {
   });
 
   return response;
-}
-
-// Simple AES-256-GCM encryption using a derived key from CRON_SECRET
-function getEncryptionKey(): Buffer {
-  const secret = process.env.CRON_SECRET || process.env.NEXTAUTH_SECRET || 'dev-fallback-key';
-  return crypto.createHash('sha256').update(secret).digest();
-}
-
-function encrypt(text: string): string {
-  const key = getEncryptionKey();
-  const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-  const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
-  const tag = cipher.getAuthTag();
-  return Buffer.concat([iv, tag, encrypted]).toString('base64url');
-}
-
-export function decrypt(encoded: string): string {
-  const key = getEncryptionKey();
-  const buf = Buffer.from(encoded, 'base64url');
-  const iv = buf.subarray(0, 12);
-  const tag = buf.subarray(12, 28);
-  const encrypted = buf.subarray(28);
-  const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-  decipher.setAuthTag(tag);
-  return decipher.update(encrypted) + decipher.final('utf8');
 }
