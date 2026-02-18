@@ -4,18 +4,19 @@ import { createAdminClient } from '@/lib/supabase/admin';
 export const revalidate = 0; // no cache
 
 const TOPIC_TERMS = [
-  { label: 'iPSC', pattern: '%ipsc%' },
-  { label: 'HSC', pattern: '%hematopoietic stem cell%' },
-  { label: 'CAR-T', pattern: '%car-t%' },
-  { label: 'MSC', pattern: '%mesenchymal%' },
-  { label: 'Organoids', pattern: '%organoid%' },
-  { label: 'CRISPR', pattern: '%crispr%' },
-  { label: 'Gene Therapy', pattern: '%gene therapy%' },
-  { label: 'Regenerative Medicine', pattern: '%regenerative%' },
-  { label: 'Exosomes', pattern: '%exosome%' },
-  { label: 'Neural Stem Cells', pattern: '%neural stem%' },
-  { label: 'Differentiation', pattern: '%differentiation%' },
-  { label: 'Reprogramming', pattern: '%reprogram%' },
+  { label: 'iPSC', slug: 'ipsc', pattern: '%ipsc%' },
+  { label: 'HSC', slug: 'hematopoietic-stem-cells', pattern: '%hematopoietic stem cell%' },
+  { label: 'CAR-T', slug: 'car-t', pattern: '%car-t%' },
+  { label: 'MSC', slug: 'mesenchymal-stem-cells', pattern: '%mesenchymal%' },
+  { label: 'Organoids', slug: 'organoids', pattern: '%organoid%' },
+  { label: 'CRISPR', slug: 'crispr', pattern: '%crispr%' },
+  { label: 'Gene Therapy', slug: 'gene-therapy', pattern: '%gene therapy%' },
+  { label: 'Regenerative Medicine', slug: 'regenerative-medicine', pattern: '%regenerative%' },
+  { label: 'Exosomes', slug: 'exosomes', pattern: '%exosome%' },
+  { label: 'Neural Stem Cells', slug: 'neural-stem-cells', pattern: '%neural stem%' },
+  { label: 'Differentiation', slug: 'differentiation', pattern: '%differentiation%' },
+  { label: 'Reprogramming', slug: 'reprogramming', pattern: '%reprogram%' },
+  { label: 'Menstrual Stem Cells', slug: 'menstrual-stem-cells', pattern: '%menstrual%' },
 ];
 
 export async function GET() {
@@ -78,12 +79,12 @@ export async function GET() {
 
   // Topic counts — parallel
   const topicCounts = await Promise.all(
-    TOPIC_TERMS.map(async ({ label, pattern }) => {
+    TOPIC_TERMS.map(async ({ label, slug, pattern }) => {
       const { count } = await supabase
         .from('papers')
         .select('*', { count: 'exact', head: true })
         .or(`title.ilike.${pattern},abstract.ilike.${pattern}`);
-      return { label, count: count ?? 0 };
+      return { label, slug, count: count ?? 0 };
     })
   );
 

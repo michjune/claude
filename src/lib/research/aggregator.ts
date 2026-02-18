@@ -259,6 +259,9 @@ const RELEVANCE_TERMS = [
   // Regenerative medicine
   /\bregenerative\s+medicine/i,
   /\btissue\s+engineer/i,
+  // Menstrual stem cells
+  /\bmenstrual\b.*\bstem/i,
+  /\bendometri\w+\s+stem/i,
 ];
 
 // Papers matching these patterns WITHOUT a novel therapy signal are filtered out.

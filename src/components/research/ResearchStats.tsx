@@ -10,7 +10,7 @@ interface Stats {
   totalPapers: number;
   totalPublished: number;
   trending: Array<{ id: string; title: string; journal_name: string | null; citation_count: number }>;
-  topics: Array<{ label: string; count: number }>;
+  topics: Array<{ label: string; slug: string; count: number }>;
   updatedAt: string;
 }
 
@@ -143,14 +143,15 @@ export function ResearchStats() {
             Research Areas
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {(stats?.topics || []).map(({ label, count }) => (
-              <span
+            {(stats?.topics || []).map(({ label, slug, count }) => (
+              <Link
                 key={label}
-                className="inline-flex items-center gap-1 rounded-full border border-border-subtle bg-surface px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary cursor-pointer"
+                href={`/topics/${slug}`}
+                className="inline-flex items-center gap-1 rounded-full border border-border-subtle bg-surface px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
               >
                 {label}
                 <span className="text-[9px] text-muted-foreground/40 tabular-nums">{count}</span>
-              </span>
+              </Link>
             ))}
             {loading && !stats && (
               <div className="flex gap-1.5">
