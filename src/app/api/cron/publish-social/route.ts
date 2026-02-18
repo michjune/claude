@@ -3,6 +3,8 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { publishContent } from '@/lib/social/publisher';
 import type { Content, SocialAccount, Platform } from '@/lib/supabase/types';
 
+export const maxDuration = 300;
+
 const PLATFORM_CONTENT_MAP: Record<Platform, string> = {
   twitter: 'tweet',
   linkedin: 'linkedin_post',

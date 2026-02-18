@@ -8,6 +8,8 @@ import { generateVideoScript } from '@/lib/ai/script-generator';
 import { generateBlogImage } from '@/lib/ai/image-generator';
 import type { Paper, ContentType } from '@/lib/supabase/types';
 
+export const maxDuration = 300;
+
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {

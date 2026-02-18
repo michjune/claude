@@ -19,6 +19,10 @@
     {
       "path": "/api/cron/fetch-search-console",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/aggregate-analytics",
+      "schedule": "0 4 * * *"
     }
   ]
 }
