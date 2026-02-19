@@ -30,7 +30,7 @@ export async function GET(request: Request) {
       .select('*')
       .eq('content_generated', false)
       .order('priority_score', { ascending: false, nullsFirst: false })
-      .limit(5);
+      .limit(1);
 
     if (error) throw error;
     if (!papers || papers.length === 0) {
