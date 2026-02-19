@@ -57,7 +57,7 @@ export async function generateBlogPost(
   return final;
 }
 
-async function generateInitialDraft(
+export async function generateInitialDraft(
   paper: Paper,
   research: ResearchContext,
   toneDirective: string
@@ -84,7 +84,7 @@ async function generateInitialDraft(
   });
 }
 
-async function editAndOptimize(
+export async function editAndOptimize(
   draft: BlogOutput,
   paper: Paper,
   research: ResearchContext,

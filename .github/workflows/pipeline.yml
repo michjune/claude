@@ -1,0 +1,14 @@
+name: Content Pipeline
+on:
+  schedule:
+    - cron: '*/15 6-22 * * *'
+  workflow_dispatch:
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Trigger daily-run
+        run: |
+          curl -sf -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.SITE_URL }}/api/daily-run"
